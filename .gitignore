@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# Private keys
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Generated certificates and CSRs
+*.csr
+*.crt
+*.crl
+
+# CA operational directories
+rootCA/
+private/
+newcerts/
+issued/
+
+# OpenSSL CA database
+index.txt*
+serial
+serial.old
+crlnumber
+crlnumber.old
+
+# Local secrets
+*.secret
+config.local.json
