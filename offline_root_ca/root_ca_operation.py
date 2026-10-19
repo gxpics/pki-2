@@ -80,6 +80,116 @@ def verify_intermediate(intermediate_cert_file, root_cert_dir = root_dir / "cert
 
     run_command(command)
 
+def revoke_certificate(intermediate_name, cert_dir=root_dir / "issued"):
+    """
+    Revoke an intermediate CA certificate.
+
+    The certificate must have been issued by this Root CA.
+    OpenSSL updates the CA database (index.txt).
+    """
+
+    cert_path = cert_dir / f"{intermediate_name}.crt"
+
+    if not cert_path.is_file():
+        raise FileNotFoundError(
+            f"Certificate not found: {cert_path}"
+        )
+
+    command = [
+        "openssl",
+        "ca",
+        "-config",
+        root_dir / "openssl.cnf",
+        "-revoke",
+        cert_path,
+        "-crl_reason",
+        "superseded"
+    ]
+
+    run_command(command)
+    generate_crl()
+    
+    print(f"Certificate revoked: {cert_path}")
+
+def generate_crl(crl_dir=root_dir / "crl"):
+    """
+    Generate a Certificate Revocation List (CRL)
+    using the Root CA database.
+    The CRL contains certificates revoked by this Root CA.
+    """
+
+    if not crl_dir.is_dir():
+        raise NotADirectoryError(
+            f"CRL directory not found: {crl_dir}"
+        )
+
+    crl_path = crl_dir / "rootCA.crl"
+
+    command = [
+        "openssl",
+        "ca",
+        "-gencrl",
+        "-config",
+        root_dir / "openssl.cnf",
+        "-out",
+        crl_path
+    ]
+
+    run_command(command)
+
+    print(f"CRL generated: {crl_path}")
+
+    return crl_path
+
+def archive_certificate(
+    intermediate_name,
+    source_dir=root_dir / "issued",
+    archive_dir=root_dir / "archive"
+):
+    """
+    Archive a revoked intermediate CA certificate.
+    The archived filename includes the certificate serial number.
+    """
+
+    cert_path = source_dir / f"{intermediate_name}.crt"
+
+    if not cert_path.is_file():
+        raise FileNotFoundError(
+            f"Certificate not found: {cert_path}"
+        )
+
+    # Retrieve the certificate serial number
+    result = subprocess.run(
+        [
+            "openssl",
+            "x509",
+            "-in", str(cert_path),
+            "-noout",
+            "-serial"
+        ],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+
+    serial = result.stdout.strip().split("=", 1)[1]
+
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    archive_path = archive_dir / f"{intermediate_name}-{serial}.crt"
+
+    # Prevent overwriting archived certificates
+    if archive_path.exists():
+        raise FileExistsError(
+            f"Archived certificate already exists: {archive_path}"
+        )
+
+    shutil.move(str(cert_path), str(archive_path))
+
+    print(f"Certificate archived: {archive_path}")
+
+    return archive_path
+
 def export_to_media(source_path, transfer_dir):  #dev only
     source_path = Path(source_path)
     destination_dir = Path(transfer_dir)
@@ -125,11 +235,18 @@ def export_cert(cert_name, source_dir = None, transfer_dir = "/mnt/hgfs/transfer
 
 def main():
     # import_csr(csr_name="intermediateCA1.csr")
-    # sign_intermediate("intermediateCA1.csr")
+    
+    # sign_intermediate("intermediateCA1")
     # verify_intermediate("intermediateCA1.crt")
+    
+    # revoke_certificate("intermediateCA1")
+    # archive_certificate("intermediateCA1")
+    
     export_cert("intermediateCA1.crt")  # offline root CA --> transfer
     export_cert("rootCA.crt", source_dir = root_dir / "certs") # offline root CA --> transfer
+    
     # Check ls /mnt/hgfs/transfer/
+
     # sign_intermediate(root_dir, "intermediateCA2")
     # verify_intermediate(root_dir, "intermediateCA2")
 
