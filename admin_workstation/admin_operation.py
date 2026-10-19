@@ -21,7 +21,9 @@ from pathlib import Path
 import paramiko
 import shutil
 import posixpath
+import subprocess
 
+# Download csr from EC2 or local ubuntu VM
 def download_csr(hostname, username, key_path,
                  remote_csr_path, local_dir):
 
@@ -30,6 +32,9 @@ def download_csr(hostname, username, key_path,
 
     local_csr_path = local_dir / Path(remote_csr_path).name
 
+    if local_csr_path.exists():
+        raise FileExistsError(f"CSR already exists: {local_csr_path}")
+    
     ssh = paramiko.SSHClient()
 
     # Load trusted SSH host keys
@@ -75,12 +80,16 @@ def export_to_media(source_path, transfer_dir):  #dev only
         raise NotADirectoryError(f"Transfer directory not found: {destination_dir}")
 
     destination = destination_dir / source_path.name
+
+    if destination.exists():
+        raise FileExistsError(f"File already exits: {destination}")
+    
     shutil.copy2(source_path, destination)
 
     return destination
 
 
-def import_from_media(cert_name, transfer_dir, destination_dir):
+def import_from_media(cert_name, transfer_dir, destination_dir, overwrite=False):
     source = Path(transfer_dir) / cert_name
     destination_dir = Path(destination_dir)
 
@@ -99,7 +108,7 @@ def import_from_media(cert_name, transfer_dir, destination_dir):
     destination = destination_dir / cert_name
 
     # Prevent accidental overwriting
-    if destination.exists():
+    if not overwrite and destination.exists():
         raise FileExistsError(
             f"Destination already exists: {destination}"
         )
@@ -163,8 +172,10 @@ def upload_certificates(hostname, username, key_path,
     finally:
         ssh.close()
 
+
+
 def main():
-    # Download intermediate csr to admin workstation 
+    # Download intermediate csr from the local Ubuntu VM to admin workstation 
     # download_csr(
     #     hostname="192.168.216.130",
     #     username="gxpics",
@@ -173,39 +184,54 @@ def main():
     #     local_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/csr"  # Windows
     # )
 
+    # Download intermediate csr from EC2 to admin workstation 
+    # download_csr(
+    #     hostname="18.189.229.149",
+    #     username="ec2-user",
+    #     key_path="C:/Users/gxpics/Documents/Capstone/AWS2/my-ec2-key.pem",  # Windows
+    #     remote_csr_path="/home/ec2-user/aws-pki-intermediate/intermediateCA1/csr/intermediateCA1.csr",
+    #     local_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/csr"  # Windows
+    # )
+
     # After downloading csr, inspect it from the pki-admin directory:
     # openssl req -in csr/intermediateCA1.csr -noout -text
+    
     # export_to_media(source_path= \
     #                 "C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/csr/intermediateCA1.csr", \
     #                 transfer_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/transfer")
 
-    # After export_to_media and certs were transferred from rootCA to admin workstation, copy them to the certs directory
+    # Certs are transferred from rootCA to admin workstation, copy them to the certs directory
+   
     # transfer_dir = "C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/transfer"
     # cert_dir = "C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/certs"
-
-    # import_from_media(
-    #     "intermediateCA1.crt",
-    #     transfer_dir,
-    #     cert_dir
-    # )
-
-    # import_from_media(
-    #     "rootCA.crt",
-    #     transfer_dir,
-    #     cert_dir
-    # )
+    # import_from_media("intermediateCA1.crt", transfer_dir, cert_dir)
+    # import_from_media("rootCA.crt", transfer_dir, cert_dir)
     
+    # # cert: admin worstation --> ubuntu local VM
+    # upload_certificates(
+    # hostname="192.168.216.130",
+    # username="gxpics",
+    # key_path="C:/Users/gxpics/.ssh/id_ed25519",
+    # local_cert_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/certs",
+    # remote_cert_dir="/home/gxpics/aws-pki-intermediate/intermediateCA1/certs",
+    # cert_names=[
+    #     "intermediateCA1.crt",
+    #     "rootCA.crt"
+    # ]
+    # )
+
+    # cert: admin worstation --> EC2
     upload_certificates(
-    hostname="192.168.216.130",
-    username="gxpics",
-    key_path="C:/Users/gxpics/.ssh/id_ed25519",
-    local_cert_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/certs",
-    remote_cert_dir="/home/gxpics/aws-pki-intermediate/intermediateCA1/certs",
-    cert_names=[
-        "intermediateCA1.crt",
-        "rootCA.crt"
-    ]
-)
+        hostname="18.189.229.149",
+        username="ec2-user",
+        key_path="C:/Users/gxpics/Documents/Capstone/AWS2/my-ec2-key.pem",
+        local_cert_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/certs",
+        remote_cert_dir="/home/ec2-user/aws-pki-intermediate/intermediateCA1/certs",
+        cert_names=[
+            "intermediateCA1.crt",
+            "rootCA.crt"
+        ]
+        )
 
 
 if __name__ == "__main__":
