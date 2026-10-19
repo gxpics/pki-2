@@ -43,23 +43,24 @@ The repository contains **source code and documentation only**. Private keys, ge
 ```mermaid
 sequenceDiagram
     autonumber
-    participant I as Intermediate CA (AWS EC2)
-    participant W as Admin Workstation (Windows)
+    participant I as Intermediate CA (EC2)
+    participant W as Admin Workstation
     participant M as Transfer Media
-    participant R as Offline Root CA (Ubuntu)
+    participant R as Offline Root CA
 
-    I->>I: Generate key and CSR; export_csr()
-    W->>I: Connect over SSH/SFTP
-    I-->>W: Download CSR; download_csr()
-    W->>M: Copy CSR; export_to_media()
-    M-->>R: Transfer CSR
-    R->>R: import_csr(); validate and approve CSR
-    R->>R: sign_intermediate()
-    R->>M: Export signed intermediate cert and root public cert; export_cert()
-    M-->>W: Return certificate files
+    I->>I: Generate key and CSR
+    I->>I: export_csr()
+    W->>I: Connect using SSH/SFTP
+    I-->>W: CSR downloaded via download_csr()
+    W->>M: export_to_media() copies CSR
+    M-->>R: CSR delivered to root CA
+    R->>R: import_csr() and validate request
+    R->>R: Approve request and sign_intermediate()
+    R->>M: export_cert() copies signed and root certificates
+    M-->>W: Certificates returned on media
     W->>W: import_from_media()
-    W->>I: Upload both certificates over SFTP; upload_certificates()
-    I->>I: Verify intermediate certificate against trusted root
+    W->>I: upload_certificates() via SFTP
+    I->>I: Verify certificate against trusted root
 ```
 
 **Files transferred:**
