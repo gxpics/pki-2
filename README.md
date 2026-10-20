@@ -80,10 +80,14 @@ The root CA private key **never leaves the offline root CA**. The root certifica
 
 In the current lab, a **VMware shared folder** simulates transfer media between the admin workstation and the root CA VM. This is convenient for testing, but it does **not** provide genuine offline isolation. In a production-style deployment, the root CA would remain disconnected from networks, and files would move through controlled removable media with integrity checks, request approval, and audit logging.
 
-## Planned extensions
+## Development Roadmap
 
-- Intermediate CA issuance of end-entity certificates
-- Revocation and CRL management
-- HSM-backed private-key operations
-- Certificate inventory and lifecycle tracking
-- Post-quantum and crypto-agile PKI support
+- [x] Offline Root CA setup and certificate issuance
+- [x] Intermediate CA CSR signing workflow (EC2 → Admin Workstation → Offline Root CA → Admin Workstation → EC2)
+- [x] Root CA certificate revocation and CRL generation
+- [ ] In progress — Intermediate CA issuance of end-entity certificates (TLS server certificates)
+- [ ] In progress — Certificate revocation lifecycle and CRL distribution
+- [ ] Planned — HSM integration for CA private-key protection (SoftHSM prototype)
+- [ ] Planned — Certificate inventory and lifecycle tracking
+- [ ] Planned — Post-quantum and crypto-agile PKI support
+
