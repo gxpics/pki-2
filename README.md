@@ -1,4 +1,4 @@
-# Enterprise PKI Automation
+# PKI Automation
 
 A Python/OpenSSL project demonstrating a three-component public key infrastructure (PKI): an **offline root certificate authority (CA)**, **intermediate CAs hosted on AWS EC2**, and a **Windows administrative workstation** coordinating certificate issuance.
 
