@@ -172,9 +172,8 @@ def upload_certificates(hostname, username, key_path,
     finally:
         ssh.close()
 
-
-
 def main():
+    intermediate_ca_name = "intermediateCA2"
     # Download intermediate csr from the local Ubuntu VM to admin workstation 
     # download_csr(
     #     hostname="192.168.216.130",
@@ -185,29 +184,33 @@ def main():
     # )
 
     # Download intermediate csr from EC2 to admin workstation 
-    # download_csr(
-    #     hostname="18.189.229.149",
-    #     username="ec2-user",
-    #     key_path="C:/Users/gxpics/Documents/Capstone/AWS2/my-ec2-key.pem",  # Windows
-    #     remote_csr_path="/home/ec2-user/aws-pki-intermediate/intermediateCA1/csr/intermediateCA1.csr",
-    #     local_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/csr"  # Windows
-    # )
+    download_csr(
+        hostname="18.189.229.149",
+        username="ec2-user",
+        key_path="C:/Users/gxpics/Documents/Capstone/AWS2/my-ec2-key.pem",  # Windows
+        remote_csr_path=f"/home/ec2-user/aws-pki-intermediate/intermediateCA1/csr/{intermediate_ca_name}.csr",
+        local_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/csr"  # Windows
+    )
 
     # After downloading csr, inspect it from the pki-admin directory:
     # openssl req -in csr/intermediateCA1.csr -noout -text
     
-    # export_to_media(source_path= \
-    #                 "C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/csr/intermediateCA1.csr", \
-    #                 transfer_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/transfer")
+    export_to_media(source_path= \
+                    f"C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/csr/{intermediate_ca_name}.csr", \
+                    transfer_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/transfer")
 
-    # Certs are transferred from rootCA to admin workstation, copy them to the certs directory
    
-    # transfer_dir = "C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/transfer"
-    # cert_dir = "C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/certs"
-    # import_from_media("intermediateCA1.crt", transfer_dir, cert_dir)
+    #
+    # Once certs are transferred from rootCA to admin workstation, copy them to the certs directory
+    #
+
+    transfer_dir = "C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/transfer"
+    cert_dir = "C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/certs"
     # import_from_media("rootCA.crt", transfer_dir, cert_dir)
+    import_from_media(f"{intermediate_ca_name}.crt", transfer_dir, cert_dir)
+   
     
-    # # cert: admin worstation --> ubuntu local VM
+    # # cert: admin worstation --> intermediate CA on local VM
     # upload_certificates(
     # hostname="192.168.216.130",
     # username="gxpics",
@@ -220,17 +223,14 @@ def main():
     # ]
     # )
 
-    # cert: admin worstation --> EC2
+    # cert: admin worstation --> intermediate CA on EC2
     upload_certificates(
         hostname="18.189.229.149",
         username="ec2-user",
         key_path="C:/Users/gxpics/Documents/Capstone/AWS2/my-ec2-key.pem",
         local_cert_dir="C:/Users/gxpics/Documents/Capstone/AWS2/pki-admin/certs",
-        remote_cert_dir="/home/ec2-user/aws-pki-intermediate/intermediateCA1/certs",
-        cert_names=[
-            "intermediateCA1.crt",
-            "rootCA.crt"
-        ]
+        remote_cert_dir=f"/home/ec2-user/aws-pki-intermediate/{intermediate_ca_name}/certs",
+        cert_names=[f"{intermediate_ca_name}.crt"]
         )
 
 
