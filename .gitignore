@@ -15,11 +15,10 @@ __pycache__/
 *.crt
 *.crl
 
-# CA operational directories
-offline_root_ca/
+# private and ca operational directories
 private/
-#newcerts/
-#issued/
+# newcerts/
+# issued/
 
 # OpenSSL CA database
 index.txt*
