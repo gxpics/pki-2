@@ -1,4 +1,22 @@
 
+# OpenSSL 3 provider configuration
+openssl_conf = openssl_init
+
+[ openssl_init ]
+providers = provider_sect
+
+[ provider_sect ]
+default = default_sect
+pkcs11 = pkcs11_sect
+
+[ default_sect ]
+activate = 1
+
+[ pkcs11_sect ]
+module = /usr/lib/x86_64-linux-gnu/ossl-modules/pkcs11.so
+pkcs11-module-path = /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so
+activate = 1
+
 [ ca ]
 default_ca = CA_default
 
@@ -9,15 +27,18 @@ crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
 database          = $dir/index.txt
 serial            = $dir/serial
-private_key       = $dir/private/rootCA.key
+
+private_key       = pkcs11:token=RootCA;object=rootCA;type=private
 certificate       = $dir/certs/rootCA.crt
+
 crlnumber         = $dir/crlnumber
 crl               = $dir/crl/root.crl.pem
+
 default_md = sha256
 default_days      = 3650
-default_crl_days  = 30                  # publish a new CRL within 30 days, CRL validity, not revocation duration
+default_crl_days  = 30
 policy            = policy_loose
-copy_extensions   = none        # the root won't copy any requested extensions from a CSR, For the root, the extensions should come only from your config, like v3_intermediate_ca, not from the CSR, so that none fits the offline root model.
+copy_extensions   = none
 
 [ policy_loose ]
 countryName             = optional
@@ -31,7 +52,7 @@ emailAddress            = optional
 [ req ]
 prompt             = no
 distinguished_name = req_distinguished_name
-x509_extensions = v3_root_ca
+x509_extensions    = v3_root_ca
 
 [ req_distinguished_name ]
 C  = US
@@ -39,7 +60,7 @@ ST = New York
 L  = Rochester
 O  = PKI Lab
 OU = Root CA
-CN = Hybrid Root CA
+CN = Root CA
 
 [ v3_root_ca ]
 subjectKeyIdentifier   = hash
