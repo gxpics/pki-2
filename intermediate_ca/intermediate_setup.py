@@ -1,37 +1,15 @@
 """ 
-This program creates a PQ PKI including a root CA and 2 intermediate CAs.
+This program is used to set up intermediate CAs on EC2
 """
 
 from pathlib import Path
 import subprocess
 import shutil
 from policy import PKI_POLICY, SUPPORTED_ALGORITHMS
+from common import BASE_DIR, run_command
 
-# BASE_DIR = Path.home() / "pki" / "classical-pki"
-# BASE_DIR = Path.home() / "pki" / "pq-pki"
-BASE_DIR = Path.home() / "aws-pki-intermediate"
-
-root_dir = BASE_DIR /"rootCA"
-intermediate1_dir = BASE_DIR / "intermediateCA1"
-intermediate2_dir = BASE_DIR / "intermediateCA2"
-
-def run_command(command):
-    try:
-        print("\nRunning:")
-        print(" ".join(str(x) for x in command))
-        print()
-
-        subprocess.run(
-            [str(x) for x in command],
-            check=True
-        )
-
-    except subprocess.CalledProcessError as e:
-        print("Command failed.")
-        print(e)
-        raise
-
-def create_ca_directories(ca_dir):  # used for any CAs including root or intermediate
+def create_ca_directories(ca_name):  # used for any CAs including root or intermediate
+    ca_dir = BASE_DIR / ca_name
     directories = [
         "certs",
         "crl",
@@ -48,7 +26,8 @@ def create_ca_directories(ca_dir):  # used for any CAs including root or interme
     print(f"Created CA directory structure: {ca_dir}")
 
 
-def initialize_ca(ca_dir): #  # used for root and intermediate CAs
+def initialize_ca(ca_name): 
+    ca_dir = BASE_DIR / ca_name
     index_file = ca_dir / "index.txt"
     serial_file = ca_dir / "serial"
     crl_file = ca_dir/"crlnumber"   # new feature added
@@ -69,7 +48,8 @@ def initialize_ca(ca_dir): #  # used for root and intermediate CAs
     print(f"Initialized CA database: {ca_dir}")
 
 
-def generate_intermediate_config(ca_dir, ca_name, default_md = None):
+def generate_intermediate_config(ca_name, default_md = None):
+    ca_dir = BASE_DIR / ca_name
     md_line = ""
     if default_md:
         md_line = f"default_md = {default_md}"
@@ -135,7 +115,9 @@ extendedKeyUsage       = serverAuth
     print(f"Created {config_path}")
 
 # Later, add encryption at rest or HSM integration
-def generate_key(key_path, algorithm, options=None):
+def generate_key(ca_name, algorithm, key_name_extension="", options=None):
+
+    key_path = BASE_DIR /ca_name / "private" / f"{ca_name}{key_name_extension}.key"
     if key_path.exists():
         print(f"Key already exists: {key_path}")
         print("Skipping key generation.")
@@ -156,14 +138,15 @@ def generate_key(key_path, algorithm, options=None):
             ])
 
     command.extend([
-        "-out",
-        str(key_path)
+        "-out", str(key_path)
     ])
 
     run_command(command)
 
-def generate_intermediate_csr(ca_dir, ca_name):
-    csr_path = ca_dir / "csr" / f"{ca_name}.csr"
+def generate_intermediate_csr(ca_name, key_name_extension="", csr_name_extension=""):
+    ca_dir = BASE_DIR / ca_name
+    csr_path = ca_dir / "csr" / f"{ca_name}{csr_name_extension}.csr"
+    key_path = ca_dir / "private" / f"{ca_name}{key_name_extension}.key"
 
     if csr_path.exists():
         print(f"CSR already exists: {csr_path}")
@@ -174,10 +157,8 @@ def generate_intermediate_csr(ca_dir, ca_name):
         "openssl",
         "req",
         "-new",
-        "-key",
-        ca_dir / "private" / f"{ca_name}.key",
-        "-out",
-        csr_path,
+        "-key", str(key_path),
+        "-out", str(csr_path),
         "-config",
         ca_dir / "openssl.cnf"
     ]
@@ -185,26 +166,23 @@ def generate_intermediate_csr(ca_dir, ca_name):
     run_command(command)
 
 def setup(mode = "classical"):
+    ca1_name = "intermediateCA1"
+    ca2_name = "intermediateCA2"
+    create_ca_directories(ca1_name)
+    create_ca_directories(ca2_name)
 
-    create_ca_directories(intermediate1_dir)
-    create_ca_directories(intermediate2_dir)
+    initialize_ca(ca1_name)
+    initialize_ca(ca2_name)
 
-    initialize_ca(intermediate1_dir)
-    initialize_ca(intermediate2_dir)
+    ca1_policy = SUPPORTED_ALGORITHMS[PKI_POLICY[mode]["intermediate"]]
+    generate_key(ca1_name, ca1_policy["algorithm"], key_name_extension="", options=ca1_policy["options"])
+    generate_intermediate_config(ca1_name, ca1_policy["digest"]) 
+    generate_intermediate_csr(ca1_name)
 
-    intermediate1_name = "intermediateCA1"
-    intermediate1_key = intermediate1_dir / "private" / f"{intermediate1_name}.key"
-    intermediate1_policy = SUPPORTED_ALGORITHMS[PKI_POLICY[mode]["intermediate"]]
-    generate_key(intermediate1_key, intermediate1_policy["algorithm"], intermediate1_policy["options"])
-    generate_intermediate_config(intermediate1_dir, intermediate1_name, intermediate1_policy["digest"]) 
-    generate_intermediate_csr(intermediate1_dir, intermediate1_name)
-
-    intermediate2_name = "intermediateCA2"
-    intermediate2_key = intermediate2_dir / "private" / f"{intermediate2_name}.key"
-    intermediate2_policy = SUPPORTED_ALGORITHMS[PKI_POLICY[mode]["intermediate"]]
-    generate_key(intermediate2_key, intermediate2_policy["algorithm"], intermediate2_policy["options"])
-    generate_intermediate_config(intermediate2_dir, intermediate2_name, intermediate2_policy["digest"])
-    generate_intermediate_csr(intermediate2_dir, intermediate2_name)
+    ca2_policy = SUPPORTED_ALGORITHMS[PKI_POLICY[mode]["intermediate"]]
+    generate_key(ca2_name, ca2_policy["algorithm"], key_name_extension="", options=ca2_policy["options"])
+    generate_intermediate_config(ca2_name, ca2_policy["digest"])
+    generate_intermediate_csr(ca2_name)
  
 
 def main():

@@ -3,27 +3,10 @@ This program creates an offline root CA structure.
 """
 
 from pathlib import Path
-import subprocess
-from common import root_dir, run_command
+from common import BASE_DIR, run_command
 from policy import PKI_POLICY, SUPPORTED_ALGORITHMS
 
-def run_command(command):
-    try:
-        print("\nRunning:")
-        print(" ".join(str(x) for x in command))
-        print()
-
-        subprocess.run(
-            [str(x) for x in command],
-            check=True
-        )
-
-    except subprocess.CalledProcessError as e:
-        print("Command failed.")
-        print(e)
-        raise
-
-def create_ca_directories(ca_dir):
+def create_root_ca_directories():
     directories = [
         "certs",
         "crl",
@@ -34,15 +17,15 @@ def create_ca_directories(ca_dir):
     ]
 
     for directory in directories:
-        path = ca_dir / directory
+        path = BASE_DIR / directory
         path.mkdir(parents=True, exist_ok=True)
 
-    print(f"Created CA directory structure: {ca_dir}")
+    print(f"Created CA directory structure: {BASE_DIR}")
 
-def initialize_ca(ca_dir):
-    index_file = ca_dir / "index.txt"
-    serial_file = ca_dir / "serial"
-    crl_file = ca_dir/"crlnumber"   # new feature added
+def initialize_root_ca():
+    index_file = BASE_DIR/ "index.txt"
+    serial_file = BASE_DIR / "serial"
+    crl_file = BASE_DIR / "crlnumber"   
 
     if not index_file.exists():
         index_file.touch()
@@ -53,10 +36,10 @@ def initialize_ca(ca_dir):
     if not crl_file.exists():
         crl_file.write_text("01\n")
 
-    print(f"Initialized CA database: {ca_dir}")
+    print(f"Initialized CA database: {BASE_DIR}")
 
 
-def generate_root_config(root_dir, default_md=None):
+def generate_root_config(default_md=None):
     md_line = ""
     if default_md:
         md_line = f"default_md = {default_md}"
@@ -66,7 +49,7 @@ def generate_root_config(root_dir, default_md=None):
 default_ca = CA_default
 
 [ CA_default ]
-dir               = {root_dir}
+dir               = {BASE_DIR}
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
@@ -117,13 +100,14 @@ basicConstraints       = critical, CA:true, pathlen:0
 keyUsage               = critical, keyCertSign, cRLSign
 """
 
-    config_path = root_dir / "openssl.cnf"
+    config_path = BASE_DIR/ "openssl.cnf"
     config_path.write_text(config)
 
     print(f"Created {config_path}")
 
 # Later, add encryption at rest or HSM integration
-def generate_key(key_path, algorithm, options=None):
+def generate_key(algorithm, key_name="rootCA", options=None):
+    key_path = BASE_DIR / "private" / f"{key_name}.key"
     if key_path.exists():
         print(f"Key already exists: {key_path}")
         print("Skipping key generation.")
@@ -150,8 +134,8 @@ def generate_key(key_path, algorithm, options=None):
 
     run_command(command)
 
-def create_root_certificate(root_dir):
-    cert_path = root_dir / "certs" / "rootCA.crt"
+def create_root_certificate():
+    cert_path = BASE_DIR / "certs" / "rootCA.crt"
 
     if cert_path.exists():
         print(f"Root certificate already exists: {cert_path}")
@@ -164,11 +148,11 @@ def create_root_certificate(root_dir):
         "-new",
         "-x509",
         "-key",
-        root_dir / "private" / "rootCA.key",
+        BASE_DIR / "private" / "rootCA.key",
         "-out",
         cert_path,
         "-config",
-        root_dir / "openssl.cnf",
+        BASE_DIR / "openssl.cnf",
         "-extensions",
         "v3_root_ca",                # so that the root certificate will have the correct extensions
         "-days",
@@ -179,19 +163,18 @@ def create_root_certificate(root_dir):
 
 def setup(mode = "classical"):
 
-    create_ca_directories(root_dir)
+    create_root_ca_directories()
 
-    initialize_ca(root_dir)
+    initialize_root_ca()
 
-    root_key = root_dir / "private" / "rootCA.key"
     root_policy = SUPPORTED_ALGORITHMS[PKI_POLICY[mode]["root"]]
 
-    generate_key(root_key, root_policy["algorithm"], root_policy["options"])
-    generate_root_config(root_dir, root_policy["digest"])
-    create_root_certificate(root_dir)
+    generate_key(root_policy["algorithm"], key_name="rootCA", options=root_policy["options"])
+    generate_root_config(root_policy["digest"])
+    create_root_certificate()
 
 
 if __name__ == "__main__":
-    #setup("classical")
-    root_policy = SUPPORTED_ALGORITHMS[PKI_POLICY["classical"]["root"]]
-    generate_root_config(root_dir, root_policy["digest"])
+    setup(mode="classical")
+    # root_policy = SUPPORTED_ALGORITHMS[PKI_POLICY["classical"]["root"]]
+    # generate_root_config(root_policy["digest"])
