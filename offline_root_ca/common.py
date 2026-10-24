@@ -1,10 +1,7 @@
 from pathlib import Path
 import subprocess
 
-#BASE_DIR = Path.home() / "pki" / "classical-pki"
-BASE_DIR = Path.home() / "aws-pki-root" 
-
-root_dir = BASE_DIR /"rootCA"
+BASE_DIR = Path.home() / "pki-2" / "offline_root_ca"
 
 def run_command(command):
     try:
