@@ -16,10 +16,16 @@ softhsm2-util --show-slots
 pkcs11-tool --module /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so --list-token-slots
 """
 import subprocess
-from common import run_command
+from common import run_command, BASE_DIR
 import pkcs11
 from pkcs11 import Attribute, KeyType, ObjectClass
-from pkcs11.util.ec import encode_named_curve_parameters
+from pkcs11.util.ec import encode_named_curve_parameters, encode_ec_public_key
+from cryptography import x509
+from cryptography.hazmat.primitives.serialization import (
+    load_der_public_key,
+    Encoding,
+    PublicFormat
+)
 from getpass import getpass
 
 SOFTHSM_MODULE = "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
@@ -120,47 +126,6 @@ def inspect_keys(token_label="RootCA"):
     """
     Display information about keys stored in a SoftHSM token.
     Does not expose private key material.
-    """
-
-    lib = pkcs11.lib(SOFTHSM_MODULE)
-    token = lib.get_token(token_label=token_label)
-
-    user_pin = getpass("Enter SoftHSM User PIN: ")
-
-    with token.open(user_pin=user_pin) as session:
-
-        print(f"\nKeys in SoftHSM token '{token_label}':")
-        print("-" * 50)
-
-        count = 0
-
-        for obj in session.get_objects():
-
-            obj_class = obj[Attribute.CLASS]
-
-            if obj_class not in (
-                ObjectClass.PRIVATE_KEY,
-                ObjectClass.PUBLIC_KEY
-            ):
-                continue
-
-            count += 1
-
-            label = obj[Attribute.LABEL]
-            key_id = obj[Attribute.ID]
-
-            print(f"Object Type : {obj_class.name}")
-            print(f"Label       : {label}")
-            print(f"ID          : {bytes(key_id).hex()}")
-            print("-" * 50)
-
-        if count == 0:
-            print("No keys found.")
-
-def inspect_keys(token_label="RootCA"):
-    """
-    Display information about keys stored in a SoftHSM token.
-    Does not expose private key material.
 
     You can also inspect keys using pkcs11-tool command directly:
     pkcs11-tool \
@@ -205,10 +170,71 @@ def inspect_keys(token_label="RootCA"):
         if count == 0:
             print("No keys found.")
 
+def verify_root_key(cert_path, token_label="RootCA", key_name="rootCA"):
+    """
+    Verify that the root CA certificate's public key
+    matches the public key stored in SoftHSM.
+    """
+
+    # Load the root CA certificate
+    with open(cert_path, "rb") as f:
+        cert = x509.load_pem_x509_certificate(f.read())
+
+    cert_public_key = cert.public_key()
+
+    cert_public_bytes = cert_public_key.public_bytes(
+        Encoding.DER,
+        PublicFormat.SubjectPublicKeyInfo
+    )
+
+    # Open SoftHSM token
+    lib = pkcs11.lib(SOFTHSM_MODULE)
+    token = lib.get_token(token_label=token_label)
+
+    user_pin = getpass("Enter SoftHSM User PIN: ")
+
+    with token.open(user_pin=user_pin) as session:
+
+        # Find the public key in SoftHSM
+        keys = list(session.get_objects({
+            Attribute.CLASS: ObjectClass.PUBLIC_KEY,
+            Attribute.LABEL: key_name
+        }))
+
+        if len(keys) != 1:
+            raise RuntimeError(
+                f"Expected exactly one public key named "
+                f"'{key_name}', found {len(keys)}."
+            )
+
+        hsm_public_key = keys[0]
+
+        # Convert PKCS#11 EC public key to DER format
+        hsm_public_der = encode_ec_public_key(hsm_public_key)
+
+    # Load HSM public key
+    hsm_public_key_obj = load_der_public_key(hsm_public_der)
+
+    hsm_public_bytes = hsm_public_key_obj.public_bytes(
+        Encoding.DER,
+        PublicFormat.SubjectPublicKeyInfo
+    )
+
+    # Compare public keys
+    if cert_public_bytes == hsm_public_bytes:
+        print("Root CA certificate matches the SoftHSM public key.")
+        return True
+
+    print("WARNING: Root CA certificate does NOT match the SoftHSM public key.")
+    return False
 
 if __name__ == "__main__":
-    initialize_hsm()
-
+    #initialize_hsm()
+    verify_root_key(
+    cert_path=BASE_DIR / "certs" / "rootCA.crt",
+    token_label="RootCA",
+    key_name="rootCA"
+    )
 # from getpass import getpass
 # def initialize_hsm(token_label="RootCA"): # Not safe
 #     """Initialize a new SoftHSM token."""

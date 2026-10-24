@@ -4,7 +4,7 @@ This program creates an offline root CA structure.
 from pathlib import Path
 from common import BASE_DIR, run_command
 from policy import PKI_POLICY, SUPPORTED_ALGORITHMS
-from hsm_setup import generate_key, inspect_keys
+from hsm_setup import generate_key, inspect_keys, verify_root_key
 
 def create_root_ca_directories():
     directories = [
@@ -64,6 +64,8 @@ def generate_root_config(
     )
 
     config = f"""
+
+
 # OpenSSL 3 provider configuration
 openssl_conf = openssl_init
 
@@ -80,6 +82,8 @@ activate = 1
 [ pkcs11_sect ]
 module = {pkcs11_module}
 pkcs11-module-path = {softhsm_module}
+pkcs11-module-cache-sessions = 0
+pkcs11-module-quirks = no-deinit
 activate = 1
 
 [ ca ]
@@ -145,7 +149,8 @@ keyUsage               = critical, keyCertSign, cRLSign
 
     print(f"Created {config_path}")
 
-def create_root_certificate():
+def create_root_certificate(root_policy):
+    digest =  root_policy["digest"]
     cert_path = BASE_DIR / "certs" / "rootCA.crt"
 
     if cert_path.exists():
@@ -156,21 +161,21 @@ def create_root_certificate():
     key_uri = "pkcs11:token=RootCA;object=rootCA;type=private"
 
     command = [
-        "openssl",
-        "req",
-        "-new",
-        "-x509",
+        "openssl", "req",
+        "-new", "-x509",
         "-key", key_uri,
         "-out", cert_path,
         "-config", BASE_DIR / "openssl.cnf",
         "-extensions", "v3_root_ca",
         "-days", "3650",
-        "-sha384"
+        f"-{digest}"
     ]
+
 
     run_command(command)
 
-# An old version that uses the key stored in a file but it supports hybrid key generation
+# An old version can generate a eitherclassical or post quantum key.
+# But softhsm does not support ML-DSA, so this function uses a key stored in a file.
 def generate_key_openssl(algorithm, key_name="rootCA", options=None):
     key_path = BASE_DIR / "private" / f"{key_name}.key"
     if key_path.exists():
@@ -242,17 +247,22 @@ def setup(mode = "classical"):
     # key_label="rootCA"
     # )
 
-    generate_key(
-    algorithm=root_policy["algorithm"],
-    key_name="rootCA",
-    token_label="RootCA"
-    )
+    # generate_key(
+    # algorithm=root_policy,
+    # key_name="rootCA",
+    # token_label="RootCA"
+    # )
 
-    inspect_keys(token_label="RootCA")
-    # generate_key(root_policy["algorithm"], key_name="rootCA", options=root_policy["options"])
+    # inspect_keys(token_label="RootCA")
+    
+    # generate_key_openssl(root_policy["algorithm"], key_name="rootCA", options=root_policy["options"])
 
-    # create_root_certificate()
-
+    create_root_certificate(root_policy)
+    verify_root_key(
+        cert_path=BASE_DIR / "certs" / "rootCA.crt",
+        token_label="RootCA",
+        key_name="rootCA"
+        )
 
 if __name__ == "__main__":
     setup(mode="classical")

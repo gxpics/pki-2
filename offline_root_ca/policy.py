@@ -50,12 +50,6 @@ SUPPORTED_ALGORITHMS = {
     }
 }
 
-#PKI_POLICY = {
-#    "root": "RSA-4096",
-#    "intermediate": "ECDSA-P384",
-#    "server": "ML-DSA-65"
-#}
-
 PKI_POLICY = {
     "classical": {
         "root": "RSA-4096",

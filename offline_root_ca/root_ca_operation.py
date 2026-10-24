@@ -5,7 +5,7 @@ from common import root_dir, run_command
 
 # move csr from /mnt/fghs/transfer --> rootCA/csr
 def import_csr(csr_name, source_dir="/mnt/hgfs/transfer", 
-               dest_dir="/home/gxpics/aws-pki-root/rootCA/csr"):
+               dest_dir="/home/gxpics/pki-2/offline_root_ca/csr"):
     """
     The purpose is to import an intermediate CA's CSR from the 
     VMware shared folder into the root CA's internal csr/ directory
@@ -49,19 +49,13 @@ def sign_intermediate(intermediate_name, source_dir = root_dir / "csr", dest_dir
         return
 
     command = [
-        "openssl",
-        "ca",
+        "openssl", "ca",
         "-batch",
-        "-config",
-        root_dir / "openssl.cnf",
-        "-extensions",
-        "v3_intermediate_ca",
-        "-days",
-        "3650",
-        "-in",
-        source_path,
-        "-out",
-        cert_path,
+        "-config", root_dir / "openssl.cnf",
+        "-extensions", "v3_intermediate_ca",
+        "-days", "3650",
+        "-in", source_path,
+        "-out", cert_path,
     ]
 
     run_command(command)
@@ -69,8 +63,7 @@ def sign_intermediate(intermediate_name, source_dir = root_dir / "csr", dest_dir
 
 def verify_intermediate(intermediate_cert_file, root_cert_dir = root_dir / "certs", intermediate_cert_dir = root_dir / "issued"):
     command = [
-        "openssl",
-        "verify",
+        "openssl","verify",
         "-purpose",
         "any",      # Tell OpenSSL not to assume a specific end use when verifying, used to avoid restricting verification to a specific certificate purpose.
         "-CAfile",
@@ -96,14 +89,10 @@ def revoke_certificate(intermediate_name, cert_dir=root_dir / "issued"):
         )
 
     command = [
-        "openssl",
-        "ca",
-        "-config",
-        root_dir / "openssl.cnf",
-        "-revoke",
-        cert_path,
-        "-crl_reason",
-        "superseded"
+        "openssl","ca",
+        "-config", root_dir / "openssl.cnf",
+        "-revoke", cert_path,
+        "-crl_reason", "superseded"
     ]
 
     run_command(command)
