@@ -90,5 +90,4 @@ In the current lab, a **VMware shared folder** simulates transfer media between 
 - [x] In progress - Intermediate CA CSR signing workflow (EC2 → Admin Workstation → Offline Root CA → Admin Workstation → EC2)
 - [ ] In progress - Certificate revocation lifecycle and CRL distribution
 - [ ] Planned - Certificate inventory and lifecycle tracking
-
-
+- [ ] Planned - REST API for mTLS
