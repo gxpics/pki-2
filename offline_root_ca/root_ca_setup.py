@@ -177,7 +177,7 @@ def create_root_certificate_old(root_policy):
     run_command(command)
 def create_root_certificate(root_policy):
     digest = root_policy["digest"]
-    cert_path = BASE_DIR / "certs" / "rootCA-test.crt"
+    cert_path = BASE_DIR / "certs" / "rootCA-new.crt"
 
     if cert_path.exists():
         print(f"Root certificate already exists: {cert_path}")
@@ -299,9 +299,9 @@ def setup(mode = "classical"):
     
     # generate_key_openssl(root_policy["algorithm"], key_name="rootCA", options=root_policy["options"])
 
-    create_root_certificate(root_policy)
+    create_root_certificate(root_policy)  # SIGSEGV: 11 at the end?
     verify_root_key(
-        cert_path=BASE_DIR / "certs" / "rootCA.crt",
+        cert_path=BASE_DIR / "certs" / "rootCA-new.crt",
         token_label="RootCA",
         key_name="rootCA"
         )

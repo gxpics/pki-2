@@ -83,11 +83,12 @@ In the current lab, a **VMware shared folder** simulates transfer media between 
 ## Development Roadmap
 
 - [x] Offline Root CA setup and certificate issuance
-- [x] Intermediate CA CSR signing workflow (EC2 → Admin Workstation → Offline Root CA → Admin Workstation → EC2)
 - [x] Root CA certificate revocation and CRL generation
-- [ ] In progress — Intermediate CA issuance of end-entity certificates (TLS server certificates)
-- [ ] In progress — Certificate revocation lifecycle and CRL distribution
-- [ ] Planned — HSM integration for CA private-key protection (SoftHSM prototype)
+- [x] Intermediate CA issuance of end-entity certificates (TLS server certificates)
+- [x] Post-quantum and crypto-agile PKI support
+- [x] Certificate revocation lifecycle and CRL distribution
+- [x] HSM integration for root CA private-key protection (SoftHSM prototype)
+- [x] Moving intermediate CA CSR signing workflow (EC2 → Admin Workstation → Offline Root CA → Admin Workstation → EC2)
 - [ ] Planned — Certificate inventory and lifecycle tracking
-- [ ] Planned — Post-quantum and crypto-agile PKI support
+
 
