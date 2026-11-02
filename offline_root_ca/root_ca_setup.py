@@ -149,7 +149,10 @@ keyUsage               = critical, keyCertSign, cRLSign
 
     print(f"Created {config_path}")
 
-def create_root_certificate(root_policy):
+def create_root_certificate_old(root_policy):
+    """
+    This function generates root cert with explicit parameters rather than named-curve encoding
+    """
     digest =  root_policy["digest"]
     cert_path = BASE_DIR / "certs" / "rootCA.crt"
 
@@ -171,9 +174,50 @@ def create_root_certificate(root_policy):
         f"-{digest}"
     ]
 
+    run_command(command)
+def create_root_certificate(root_policy):
+    digest = root_policy["digest"]
+    cert_path = BASE_DIR / "certs" / "rootCA-test.crt"
+
+    if cert_path.exists():
+        print(f"Root certificate already exists: {cert_path}")
+        print("Skipping root certificate generation.")
+        return
+
+    key_uri = "pkcs11:token=RootCA;object=rootCA;type=private"
+
+    # Public key previously converted to named-curve encoding
+    public_key_path = BASE_DIR / "certs" / "rootCA-public.pem"
+
+    if not public_key_path.exists():
+        raise FileNotFoundError(
+            f"Named-curve public key not found: {public_key_path}"
+        )
+
+    subject = (
+        "/C=US"
+        "/ST=New York"
+        "/L=Rochester"
+        "/O=PKI Lab"
+        "/OU=Root CA"
+        "/CN=Root CA"
+    )
+
+    command = [
+        "openssl", "x509", "-new",
+        "-provider", "default",
+        "-provider", "pkcs11",
+        "-subj", subject,
+        "-force_pubkey", str(public_key_path),
+        "-key", key_uri,
+        "-days", "3650",
+        f"-{digest}",
+        "-extfile", str(BASE_DIR / "openssl.cnf"),
+        "-extensions", "v3_root_ca",
+        "-out", str(cert_path)
+    ]
 
     run_command(command)
-
 # An old version can generate a eitherclassical or post quantum key.
 # But softhsm does not support ML-DSA, so this function uses a key stored in a file.
 def generate_key_openssl(algorithm, key_name="rootCA", options=None):
@@ -184,10 +228,8 @@ def generate_key_openssl(algorithm, key_name="rootCA", options=None):
         return
 
     command = [
-        "openssl",
-        "genpkey",
-        "-algorithm",
-        algorithm
+        "openssl", "genpkey",
+        "-algorithm", algorithm
     ]
 
     if options:

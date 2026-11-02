@@ -1,7 +1,14 @@
+'''
+PKI uses three software components:
+1. SoftHSM stores the root CA's private and public keys.
+2. PKCS#11 provider allows OpenSSL to access those keys.
+3. OpenSSL generates the root CA certificate using the key.
+
+'''
 from pathlib import Path
 import subprocess
 import shutil
-from common import root_dir, run_command
+from common import BASE_DIR, run_command
 
 # move csr from /mnt/fghs/transfer --> rootCA/csr
 def import_csr(csr_name, source_dir="/mnt/hgfs/transfer", 
@@ -35,10 +42,10 @@ def import_csr(csr_name, source_dir="/mnt/hgfs/transfer",
 
     print(f"CSR imported: {destination}")
 
-def sign_intermediate(intermediate_name, source_dir = root_dir / "csr", dest_dir = root_dir / "issued"):
+def sign_intermediate(intermediate_name, source_dir = BASE_DIR / "csr", dest_dir = BASE_DIR / "issued"):
     """
-    The intermediate's csr should be in root_dir / csr
-    The signed certificate will be placed in root_dir / issued 
+    The intermediate's csr should be in BASE_DIR / csr
+    The signed certificate will be placed in BASE_DIR / issued 
     """
     source_path = source_dir / f"{intermediate_name}.csr"
     cert_path = dest_dir / f"{intermediate_name}.crt"
@@ -51,7 +58,7 @@ def sign_intermediate(intermediate_name, source_dir = root_dir / "csr", dest_dir
     command = [
         "openssl", "ca",
         "-batch",
-        "-config", root_dir / "openssl.cnf",
+        "-config", BASE_DIR / "openssl.cnf",
         "-extensions", "v3_intermediate_ca",
         "-days", "3650",
         "-in", source_path,
@@ -61,7 +68,7 @@ def sign_intermediate(intermediate_name, source_dir = root_dir / "csr", dest_dir
     run_command(command)
 
 
-def verify_intermediate(intermediate_cert_file, root_cert_dir = root_dir / "certs", intermediate_cert_dir = root_dir / "issued"):
+def verify_intermediate(intermediate_cert_file, root_cert_dir = BASE_DIR / "certs", intermediate_cert_dir = BASE_DIR / "issued"):
     command = [
         "openssl","verify",
         "-purpose",
@@ -73,7 +80,7 @@ def verify_intermediate(intermediate_cert_file, root_cert_dir = root_dir / "cert
 
     run_command(command)
 
-def revoke_certificate(intermediate_name, cert_dir=root_dir / "issued"):
+def revoke_certificate(intermediate_name, cert_dir=BASE_DIR / "issued"):
     """
     Revoke an intermediate CA certificate.
 
@@ -90,7 +97,7 @@ def revoke_certificate(intermediate_name, cert_dir=root_dir / "issued"):
 
     command = [
         "openssl","ca",
-        "-config", root_dir / "openssl.cnf",
+        "-config", BASE_DIR / "openssl.cnf",
         "-revoke", cert_path,
         "-crl_reason", "superseded"
     ]
@@ -100,7 +107,7 @@ def revoke_certificate(intermediate_name, cert_dir=root_dir / "issued"):
     
     print(f"Certificate revoked: {cert_path}")
 
-def generate_crl(crl_dir=root_dir / "crl"):
+def generate_crl(crl_dir=BASE_DIR / "crl"):
     """
     Generate a Certificate Revocation List (CRL)
     using the Root CA database.
@@ -119,7 +126,7 @@ def generate_crl(crl_dir=root_dir / "crl"):
         "ca",
         "-gencrl",
         "-config",
-        root_dir / "openssl.cnf",
+        BASE_DIR / "openssl.cnf",
         "-out",
         crl_path
     ]
@@ -132,8 +139,8 @@ def generate_crl(crl_dir=root_dir / "crl"):
 
 def archive_certificate(
     intermediate_name,
-    source_dir=root_dir / "issued",
-    archive_dir=root_dir / "archive"
+    source_dir=BASE_DIR / "issued",
+    archive_dir=BASE_DIR / "archive"
 ):
     """
     Archive a revoked intermediate CA certificate.
@@ -199,7 +206,7 @@ def export_to_media(source_path, transfer_dir):  #dev only
 
 def export_cert(cert_name, source_dir = None, transfer_dir = "/mnt/hgfs/transfer"):
     if source_dir is None:
-        source_dir = root_dir / "issued"
+        source_dir = BASE_DIR / "issued"
     
     source = source_dir / cert_name
 
@@ -225,19 +232,19 @@ def export_cert(cert_name, source_dir = None, transfer_dir = "/mnt/hgfs/transfer
 def main():
     # import_csr(csr_name="intermediateCA1.csr")
     
-    # sign_intermediate("intermediateCA1")
-    # verify_intermediate("intermediateCA1.crt")
+    #sign_intermediate("intermediateCA1")
+    #verify_intermediate("intermediateCA1.crt")
     
     # revoke_certificate("intermediateCA1")
     # archive_certificate("intermediateCA1")
     
-    export_cert("intermediateCA1.crt")  # offline root CA --> transfer
-    export_cert("rootCA.crt", source_dir = root_dir / "certs") # offline root CA --> transfer
+    # export_cert("intermediateCA1.crt")  # offline root CA --> transfer
+    # export_cert("rootCA.crt", source_dir = root_dir / "certs") # offline root CA --> transfer
     
     # Check ls /mnt/hgfs/transfer/
 
-    # sign_intermediate(root_dir, "intermediateCA2")
-    # verify_intermediate(root_dir, "intermediateCA2")
+    sign_intermediate("intermediateCA2")
+    verify_intermediate("intermediateCA2.crt")
 
 if __name__ == "__main__":
     main()

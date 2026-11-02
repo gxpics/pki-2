@@ -122,6 +122,39 @@ def generate_key(algorithm="EC", key_name="rootCA", token_label="RootCA",options
             f"inside SoftHSM token '{token_label}'."
         )
 
+# Debugging (verification of int cert has failed because root cert uses explicit encoding) 
+# Checking EC_PARAMS attribute
+# EC_PARAMS: 06052b81040022 -- this is the named curve OID for p-384
+# SoftHSM is storing the key correctly. That means the explicit encoding is
+# being introduced later, likely when OpenSSL pulls the key through the PKCS eleven 
+# provider or during certificate generation.
+def check_ec_params(key_name="rootCA", token_label="RootCA"): 
+    lib = pkcs11.lib(SOFTHSM_MODULE)
+    token = lib.get_token(token_label=token_label)
+
+    user_pin = getpass("Enter SoftHSM User PIN: ")
+
+    with token.open(user_pin=user_pin, rw=False) as session:
+
+        # Find the existing public key in SoftHSM
+        public_keys = session.get_objects({
+            Attribute.CLASS: ObjectClass.PUBLIC_KEY,
+            Attribute.LABEL: key_name
+        })
+
+        public_key = next(public_keys, None)
+
+        if public_key is None:
+            print("Public key not found.")
+        else:
+            ec_params = public_key[Attribute.EC_PARAMS]
+            print("EC_PARAMS:", bytes(ec_params).hex())
+
+#OpenSSL to load two providers, then read the RootCA public key from SoftHSM via PKCS#11
+#openssl list -providers -verbose -provider default -provider pkcs11
+#openssl pkey -provider default -provider pkcs11 -in 'pkcs11:token=RootCA;object=rootCA;type=public' -pubin -pubout -text
+#openssl asn1parse -in /tmp/root-public-named.pem -i
+
 def inspect_keys(token_label="RootCA"):
     """
     Display information about keys stored in a SoftHSM token.
@@ -230,11 +263,12 @@ def verify_root_key(cert_path, token_label="RootCA", key_name="rootCA"):
 
 if __name__ == "__main__":
     #initialize_hsm()
-    verify_root_key(
-    cert_path=BASE_DIR / "certs" / "rootCA.crt",
-    token_label="RootCA",
-    key_name="rootCA"
-    )
+    # verify_root_key(
+    # cert_path=BASE_DIR / "certs" / "rootCA.crt",
+    # token_label="RootCA",
+    # key_name="rootCA"
+    # )
+    check_ec_params()
 # from getpass import getpass
 # def initialize_hsm(token_label="RootCA"): # Not safe
 #     """Initialize a new SoftHSM token."""
