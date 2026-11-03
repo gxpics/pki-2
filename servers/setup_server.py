@@ -3,6 +3,14 @@ import subprocess
 from common import  run_command, BASE_DIR
 from policy import SUPPORTED_ALGORITHMS, PKI_POLICY
 
+def create_server_dir(server_name):
+    directories = ["certs", "csr", "private"]
+    server_dir = BASE_DIR / server_name
+    for directory in directories:
+        (server_dir / directory).mkdir(
+            parents=True,
+            exist_ok=True
+        )
 
 def generate_key(server_name, algorithm, key_name_extension="", options=None):
 
@@ -12,36 +20,15 @@ def generate_key(server_name, algorithm, key_name_extension="", options=None):
         print("Skipping key generation.")
         return
 
-    command = [
-        "openssl","genpkey",
-        "-algorithm", algorithm
-    ]
+    command = ["openssl","genpkey","-algorithm", algorithm]
 
     if options:
         for option in options:
-            command.extend([
-                "-pkeyopt",
-                option
-            ])
+            command.extend(["-pkeyopt", option])
 
-    command.extend([
-        "-out", str(key_path)
-    ])
+    command.extend(["-out", str(key_path)])
 
     run_command(command)
-
-def create_server_dir(server_name):
-    directories = [
-        "certs",
-        "csr",
-        "private"
-    ]
-    server_dir = BASE_DIR / server_name
-    for directory in directories:
-        (server_dir / directory).mkdir(
-            parents=True,
-            exist_ok=True
-        )
 
 def generate_server_csr(server_name):
     server_dir = BASE_DIR / server_name
@@ -181,12 +168,10 @@ def initialize_server(server_name="server1", intermediate_name="intermediateCA1"
     create_server_dir(server_name)
 
     server_policy = SUPPORTED_ALGORITHMS[PKI_POLICY[mode]["server"]]
-    generate_key(server_key, server_policy["algorithm"],server_policy["options"])
+    print("server policy:", server_policy)
+    generate_key(server_name, server_policy["algorithm"], key_name_extension="", options=server_policy["options"])
 
     generate_server_csr(server_name)
-
-    # sign server 
-    verify_server(server_name, intermediate_name, "rootCA")
 
 
 def main():
@@ -196,20 +181,24 @@ def main():
         mode = "classical" 
     else:
         mode = "post_quantum"
-        
+
     server_name = "server1"
     intermediate_ca_name = "IntermediateCA1"
-    server_dir = BASE_DIR / server_name
-    server_key = server_dir / "private" / (server_name + ".key")
+    # server_dir = BASE_DIR / server_name
+    # server_key = server_dir / "private" / (server_name + ".key")
 
     initialize_server(server_name, intermediate_ca_name, mode)
 
-    create_server_chain(server_name, intermediate_ca_name)
-    install_nginx_certificate(server_name)
-    generate_nginx_config(server_name)
-    enable_nginx_site(server_name)
-    test_nginx()
-    reload_nginx()
+    # intermedate_ca_name signs the server's csr
+     
+    # verify_server(server_name, intermediate_ca_name, "rootCA")
+    
+    # create_server_chain(server_name, intermediate_ca_name)
+    # install_nginx_certificate(server_name)
+    # generate_nginx_config(server_name)
+    # enable_nginx_site(server_name)
+    # test_nginx()
+    # reload_nginx()
 
 
 if __name__ == "__main__":

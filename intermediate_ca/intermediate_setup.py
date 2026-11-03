@@ -123,23 +123,13 @@ def generate_key(ca_name, algorithm, key_name_extension="", options=None):
         print("Skipping key generation.")
         return
 
-    command = [
-        "openssl",
-        "genpkey",
-        "-algorithm",
-        algorithm
-    ]
+    command = ["openssl", "genpkey", "-algorithm", algorithm]
 
     if options:
         for option in options:
-            command.extend([
-                "-pkeyopt",
-                option
-            ])
+            command.extend(["-pkeyopt", option])
 
-    command.extend([
-        "-out", str(key_path)
-    ])
+    command.extend(["-out", str(key_path)])
 
     run_command(command)
 
@@ -153,14 +143,10 @@ def generate_intermediate_csr(ca_name, key_name_extension="", csr_name_extension
         print("Skipping CSR generation.")
         return
 
-    command = [
-        "openssl",
-        "req",
-        "-new",
+    command = ["openssl", "req", "-new",
         "-key", str(key_path),
         "-out", str(csr_path),
-        "-config",
-        ca_dir / "openssl.cnf"
+        "-config", ca_dir / "openssl.cnf"
     ]
 
     run_command(command)
