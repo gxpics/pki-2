@@ -30,3 +30,6 @@ crlnumber.old
 # Local secrets
 *.secret
 config.local.json
+
+# documentaion that may contain outdated info
+*.pdf

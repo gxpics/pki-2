@@ -1,7 +1,6 @@
 from pathlib import Path
 import subprocess
 from common import  run_command, BASE_DIR
-from policy import SUPPORTED_ALGORITHMS, PKI_POLICY
 
 def install_nginx_certificate(server_name):
     """
@@ -34,7 +33,7 @@ server {{
     server_name localhost;
 
     ssl_certificate /etc/nginx/ssl/{server_name}-chain.crt;
-    ssl_certificate_key /etc/nginx/ssl/{server_name}.key;
+    ssl_certificate_key /etc/nginx/ssl/{server_name}.key; 
 
     location / {{
         return 200 "Post-Quantum PKI NGINX server\\n";
@@ -42,23 +41,57 @@ server {{
 }}
 """
 
-    config_path = Path(f"/tmp/{server_name}")
+    # Full path to the configuration file
+    config_path = BASE_DIR / server_name / f"{server_name}.conf"
 
+    # Create the configuration file
     config_path.write_text(config)
 
+    # Copy the configuration file to Nginx
     run_command([
         "sudo", "cp",
-        config_path,
-        f"/etc/nginx/sites-available/{server_name}"
+        str(config_path),
+        f"/etc/nginx/sites-available/{server_name}.conf"
     ])
 
+    print(f"Nginx configuration installed: {server_name}.conf")
 
 def enable_nginx_site(server_name):
+    source = Path(f"/etc/nginx/sites-available/{server_name}.conf")
+    link = Path(f"/etc/nginx/sites-enabled/{server_name}.conf")
+
+    if link.is_symlink():
+        if link.resolve() == source:
+            print(f"Nginx site already enabled: {server_name}")
+            return
+
+        raise RuntimeError(
+            f"Symbolic link points to an unexpected location: {link}"
+        )
+
+    if link.exists():
+        raise RuntimeError(
+            f"Path already exists and is not a symbolic link: {link}"
+        )
+
+    run_command([
+        "sudo", "ln", "-s",
+        str(source),
+        str(link)
+    ])
+
+    print(f"Nginx site enabled: {server_name}")
+
+def enable_nginx_site(server_name):
+    """
+    Enable an Nginx website by creating a symbolic link from the 
+    sites-enabled directory to its configuration file in sites-available.
+    """
     run_command([
         "sudo", "ln",
         "-s",
-        f"/etc/nginx/sites-available/{server_name}",
-        f"/etc/nginx/sites-enabled/{server_name}"
+        f"/etc/nginx/sites-available/{server_name}.conf",
+        f"/etc/nginx/sites-enabled/{server_name}.conf"
     ])
 
 def test_nginx():
@@ -84,10 +117,10 @@ def reload_nginx():
 def main():
     server_name = "server1"
 
-    install_nginx_certificate(server_name)
-    generate_nginx_config(server_name)
-    enable_nginx_site(server_name)
-    test_nginx()
+    # install_nginx_certificate(server_name)
+    # generate_nginx_config(server_name)
+    # enable_nginx_site(server_name)
+    #test_nginx()
     reload_nginx()
 
 
