@@ -1,5 +1,8 @@
+"""
+TLS certificate management
+"""
+
 from pathlib import Path
-import subprocess
 from common import  run_command, BASE_DIR
 from policy import SUPPORTED_ALGORITHMS, PKI_POLICY
 
@@ -30,133 +33,97 @@ def generate_key(server_name, algorithm, key_name_extension="", options=None):
 
     run_command(command)
 
-def generate_server_csr(server_name):
+def generate_server_csr(server_name, overwrite=False):
     server_dir = BASE_DIR / server_name
+    key_path = server_dir / "private" / f"{server_name}.key"
+    csr_path = server_dir / "csr" / f"{server_name}.csr"
+    if csr_path.exists() and not overwrite:
+        print(f"CSR already exists: {csr_path}")
+        print("Skipping CSR generation.")
+        return
     command = [
         "openssl","req",
         "-new",
-        "-key", server_dir / "private" / f"{server_name}.key",
-        "-out", server_dir / "csr" / f"{server_name}.csr",
-        "-subj", f"/C=US/ST=New York/L=Rochester/O=Hybrid PKI Lab/CN={server_name}"
-    ]
-
-    run_command(command)
-
-
-def verify_server(server_name, 
-                  intermediate_crt_name="intermediateCA1.crt", 
-                  root_crt_name="rootCA.crt"):
-    """
-    Verify the complete server cert chain
-    """
-    server_dir = BASE_DIR / server_name
-    
-    root_crt = server_dir / "certs" / root_crt_name
-    intermediate_crt = server_dir / "certs" / intermediate_crt_name
-    server_crt = server_dir / "certs" / f"{server_name}.crt"
-    command = [
-        "openssl", "verify",
-        "-CAfile", root_crt,
-        "-untrusted", intermediate_crt, server_crt
+        "-key", str(key_path),
+        "-out", str(csr_path),
+        "-subj", f"/C=US/ST=New York/L=Rochester/O=Hybrid PKI Lab/CN={server_name}",
+        "-addext", "subjectAltName=DNS:localhost"
     ]
 
     run_command(command)
 
 def create_server_chain(server_name, intermediate_name):
     """
+    The server must wait until the Intermediate CA has signed its CSR.
+    Once the server's crt and intermediate crt are placed in certs/, 
+    prepare the certificate chain that the server will present to TLS clients.
     server chain certificate = server certificate + intermediate certificate
-    Python can concatenate them directly without calling cat
+    After that, verify the server certificate against the Root CA before 
+    you configure Nginx.
     """
     server_dir = BASE_DIR / server_name
-
     server_cert = server_dir / "certs" / f"{server_name}.crt"
-
     intermediate_cert = server_dir / "certs" / f"{intermediate_name}.crt"
-
     chain_file = server_dir / "certs" / f"{server_name}-chain.crt"
-    
+
+    if not server_cert.exists():
+        raise FileNotFoundError(f"Server certificate not found: {server_cert}")
+
+    if not intermediate_cert.exists():
+        raise FileNotFoundError(
+            f"Intermediate certificate not found: {intermediate_cert}"
+        )   
+
+    chain_content = (
+    server_cert.read_text().rstrip() + "\n" +
+    intermediate_cert.read_text().rstrip() + "\n"
+    )
+
+    if chain_file.exists():
+        if chain_file.read_text() == chain_content:
+            print(f"Chain already up to date: {chain_file}")
+            return
+        
     chain_file.write_text(server_cert.read_text() + intermediate_cert.read_text())
 
     print(f"Created chain: {chain_file}")
 
-
-def install_nginx_certificate(server_name):
+def verify_server(server_name, 
+                  hostname="localhost",
+                  intermediate_ca_name="intermediateCA1", 
+                  root_ca_name="rootCA"):
     """
-    Copy the server chain certificate and key to nginx 
+    Verify the server cert chain
+    This function assumes that root CA's crt is availabe in the server's certs directory.
+    Checks:
+      - Certificate signatures and chain
+      - Certificate validity periods
+      - CA constraints and key usage
+      - TLS server authentication purpose
+      - Server hostname
     """
     server_dir = BASE_DIR / server_name
-    nginx_dir = Path("/etc/nginx/ssl")
+    
+    root_crt = server_dir / "certs" / f"{root_ca_name}.crt"
+    intermediate_crt = server_dir / "certs" / f"{intermediate_ca_name}.crt"
+    server_crt = server_dir / "certs" / f"{server_name}.crt"
 
-    command = ["sudo", "mkdir", "-p", nginx_dir]
-
+    for cert in [root_crt, intermediate_crt, server_crt]:
+        if not cert.is_file():
+            raise FileNotFoundError(
+                f"Required certificate file not found: {cert}"
+            )
+    
+    command = [
+        "openssl", "verify",
+        "-CAfile", str(root_crt),
+        "-untrusted", str(intermediate_crt),
+        "-purpose", "sslserver",    # checks whether the certificate is suitable for TLS server authentication, 
+                                    #including relevant key usage and extended key usage restrictions.
+        "-verify_hostname", hostname,
+        str(server_crt)
+    ]
     run_command(command)
-
-    run_command([
-        "sudo", "cp",
-        server_dir / "certs" / f"{server_name}-chain.crt",
-        nginx_dir / f"{server_name}-chain.crt"
-    ])
-
-    run_command([
-        "sudo", "cp", 
-        server_dir / "private" / f"{server_name}.key",
-        nginx_dir / f"{server_name}.key"
-    ])
-
-
-def generate_nginx_config(server_name):
-    config = f"""
-server {{
-    listen 445 ssl;
-    server_name localhost;
-
-    ssl_certificate /etc/nginx/ssl/{server_name}-chain.crt;
-    ssl_certificate_key /etc/nginx/ssl/{server_name}.key;
-
-    location / {{
-        return 200 "Post-Quantum PKI NGINX server\\n";
-    }}
-}}
-"""
-
-    config_path = Path(f"/tmp/{server_name}")
-
-    config_path.write_text(config)
-
-    run_command([
-        "sudo", "cp",
-        config_path,
-        f"/etc/nginx/sites-available/{server_name}"
-    ])
-
-
-def enable_nginx_site(server_name):
-    run_command([
-        "sudo", "ln",
-        "-s",
-        f"/etc/nginx/sites-available/{server_name}",
-        f"/etc/nginx/sites-enabled/{server_name}"
-    ])
-
-def test_nginx():
-    run_command(["sudo", "nginx","-t"])
-
-def reload_nginx():
-    # Test nginx configuration first
-    run_command(["sudo","nginx","-t"])
-
-    # Reload systemd service definitions if needed
-    run_command(["sudo", "systemctl", "daemon-reload"])
-
-    # Determine whether nginx is running
-    result = subprocess.run(["systemctl", "is-active", "--quiet", "nginx"])
-
-    if result.returncode == 0:
-        print("Nginx is active. Reloading nginx...")
-        run_command(["sudo","systemctl","reload","nginx"])
-    else:
-        print("Nginx is inactive. Starting nginx...")
-        run_command(["sudo", "systemctl", "start", "nginx"])
 
 def initialize_server(server_name="server1", intermediate_name="intermediateCA1", mode = "classical"):
     """
@@ -183,17 +150,20 @@ def main():
         mode = "post_quantum"
 
     server_name = "server1"
-    intermediate_ca_name = "IntermediateCA1"
-    # server_dir = BASE_DIR / server_name
-    # server_key = server_dir / "private" / (server_name + ".key")
-
-    initialize_server(server_name, intermediate_ca_name, mode)
-
-    # intermedate_ca_name signs the server's csr
-     
-    # verify_server(server_name, intermediate_ca_name, "rootCA")
+    hostname ="localhost"
+    intermediate_ca_name = "intermediateCA1"
+    root_ca_name = "rootCA"
     
-    # create_server_chain(server_name, intermediate_ca_name)
+
+    #initialize_server(server_name, intermediate_ca_name, mode)
+
+    # The intermediate CA signs the server's csr
+    # Server cert and the intermediate cert should be placed in the server's certs directory 
+    
+    create_server_chain(server_name, intermediate_ca_name)
+    verify_server(server_name, hostname, intermediate_ca_name, root_ca_name)
+    
+    # 
     # install_nginx_certificate(server_name)
     # generate_nginx_config(server_name)
     # enable_nginx_site(server_name)

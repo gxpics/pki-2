@@ -72,7 +72,7 @@ def verify_csr_san(csr_path, approved_san):
 
     print("CSR SAN verification successful")
 
-def sign_server_csr(csr_path, approved_san, ca_dir, output_path, 
+def sign_server_csr(approved_san, server_name="server1", intermediate_ca_name="intermediateCA1", #csr_path, approved_san, output_path, 
 validity_days=365):
     """
     Sign a TLS server CSR using the Intermediate CA.
@@ -82,10 +82,9 @@ validity_days=365):
         IP:203.0.113.10
         DNS:web.example.com
     """
-
-    csr_path = Path(csr_path)
-    ca_dir = Path(ca_dir)
-    output_path = Path(output_path)
+    intermediate_ca_dir = BASE_DIR / intermediate_ca_name 
+    csr_path = intermediate_ca_dir / 'csr' / f'{server_name}.csr' # Path(csr_path)
+    output_path = intermediate_ca_dir / 'certs' / f'{server_name}.crt' # Path(output_path)
 
     # 1. Validate the approved SAN
     if approved_san.startswith("IP:"):
@@ -137,7 +136,7 @@ validity_days=365):
     verify_csr_san(csr_path, approved_san)
 
     # 4. Create certificate extension configuration
-    ext_path = ca_dir / "server_ext.cnf"
+    ext_path = intermediate_ca_dir / "server_ext.cnf"  # temporary config file openssl uses
 
     ext_path.write_text(
         "[server_cert]\n"
@@ -152,7 +151,7 @@ validity_days=365):
     # 5. Issue certificate
     run_command([
         "openssl", "ca",
-        "-config", str(ca_dir / "openssl.cnf"),
+        "-config", str(intermediate_ca_dir / "openssl.cnf"),
         "-extensions", "server_cert",
         "-extfile", str(ext_path),
         "-in", str(csr_path),
@@ -165,7 +164,8 @@ validity_days=365):
     # 6. Verify issued certificate
     run_command([
         "openssl", "verify",
-        "-CAfile", str(ca_dir / "certs" / "ca-chain.cert.pem"),
+        "-CAfile", str(intermediate_ca_dir / "certs" / "rootCA.crt"),
+        "-untrusted", str(intermediate_ca_dir / "certs" / "intermediateCA1.crt"),
         str(output_path)
     ])
 
@@ -181,13 +181,6 @@ def install_root_certificate():
 
 # Confirm the signed certificate matches the intermediate's private key
 def verify_key_pair():
-    pass
-
-# Combine intermediate and root certificates into ca-chain.crt
-def create_ca_chain():
-    pass
-
-def sign_server_certificate():
     pass
 
 def revoke_certificate():
@@ -208,14 +201,16 @@ def export_csr_for_intermediate_ca_on_local_VM():
 
 def main():
     # Intermediate CAs on EC2 
-    ca_dir = BASE_DIR / "intermediateCA1"
-    csr_path = ca_dir / "csr" / "servers" / "server.csr"
-    output_path = ca_dir / "issued" / "tls-server.cert.pem"
+    server_name = "server1"
+    intermediate_ca_name = "intermediateCA1"
+    ca_dir = BASE_DIR / intermediate_ca_name
+    csr_path = ca_dir / "csr" / f"{server_name}.csr"
+    output_path = ca_dir / "issued" / f"{server_name}.crt"
     approved_san="IP:3.128.35.251",  # Elastic IP of EC2, currently manual approval is used, 
         # Later, approved_sans should be managed by RA or database that stores each server's identity, 
         # its approved SANs, and other relevant informationf
-    sign_server_csr( csr_path=str(csr_path), approved_san=approved_san,
-        ca_dir=str(ca_dir),output_path=str(output_path))
+    approved_san = "DNS:localhost"
+    sign_server_csr(approved_san, server_name, intermediate_ca_name)
     pass
 
 if __name__ == "__main__":
