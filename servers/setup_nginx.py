@@ -114,6 +114,42 @@ def reload_nginx():
         print("Nginx is inactive. Starting nginx...")
         run_command(["sudo", "systemctl", "start", "nginx"])
 
+def test_nginx_tls(server_name, hostname="localhost", port=445):
+    """
+    Test the running Nginx TLS server.
+
+    Checks:
+      - TLS handshake succeeds
+      - Certificate chain validates against the Root CA
+      - Certificate is valid for TLS server authentication
+      - Certificate matches the expected hostname
+    """
+
+    server_dir = BASE_DIR / server_name
+    root_crt = server_dir / "certs" / "rootCA.crt"
+
+    if not root_crt.is_file():
+        raise FileNotFoundError(
+            f"Root CA certificate not found: {root_crt}"
+        )
+
+    command = [
+        "openssl", "s_client",
+        "-connect", f"{hostname}:{port}",
+        "-servername", hostname,
+        "-CAfile", str(root_crt),
+        "-verify_return_error",
+        "-verify_hostname", hostname,
+        "-purpose", "sslserver",
+        "-showcerts",
+        "-brief",
+        "-no_ign_eof"
+    ]
+
+    run_command(command)
+
+    print(f"Nginx TLS verification successful: {hostname}:{port}")
+    
 def main():
     server_name = "server1"
 
@@ -122,7 +158,7 @@ def main():
     # enable_nginx_site(server_name)
     #test_nginx()
     reload_nginx()
-
+    test_nginx_tls("server1")
 
 if __name__ == "__main__":
     main()
