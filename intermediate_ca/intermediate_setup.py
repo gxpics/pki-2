@@ -1,5 +1,7 @@
 """ 
-This program is used to set up intermediate CAs on EC2
+This program is used to set up intermediate CAs on Ubuntu.
+- CA directories
+- Generate CSRs
 """
 
 from pathlib import Path

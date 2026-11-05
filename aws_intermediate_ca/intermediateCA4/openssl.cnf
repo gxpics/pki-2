@@ -3,14 +3,14 @@
 default_ca = CA_default
 
 [ CA_default ]
-dir               = /home/gxpics/pki-2/intermediate_ca/intermediateCA2
+dir               = /home/ec2-user/pki-2/aws_intermediate_ca/intermediateCA4
 certs             = $dir/certs
 crl_dir           = $dir/crl
 new_certs_dir     = $dir/newcerts
 database          = $dir/index.txt
 serial            = $dir/serial
-private_key       = $dir/private/intermediateCA2.key
-certificate       = $dir/certs/intermediateCA2.crt
+private_key       = $dir/private/intermediateCA4.key
+certificate       = $dir/certs/intermediateCA4.crt
 
 # CRL configuration
 crlnumber         = $dir/crlnumber
@@ -44,7 +44,7 @@ ST = New York
 L  = Rochester
 O  = PKI Lab
 OU = Intermediate CA
-CN = intermediateCA2
+CN = intermediateCA4
 
 [ server_cert ]
 basicConstraints       = critical, CA:false

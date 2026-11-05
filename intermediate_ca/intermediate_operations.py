@@ -1,3 +1,9 @@
+"""
+Main operations of intermediate CAs on Ubuntu.
+- Verify intermediate CA certs
+- Sign server's CSR
+- More to be added for CLM
+"""
 from pathlib import Path
 import shutil
 import ipaddress
@@ -6,8 +12,10 @@ from cryptography import x509
 from policy import PKI_POLICY, SUPPORTED_ALGORITHMS
 from common import BASE_DIR, run_command
 
-# Verify the intermediate certificate against the root
 def verify_intermediate_cert(ca_dir, ca_name):
+    """
+    Verify the intermediate certificate against the root
+    """
     command = [
         "openssl",
         "verify",
@@ -200,15 +208,12 @@ def export_csr_for_intermediate_ca_on_local_VM():
     export_csr(ca_dir, ca_name, export_dir)
 
 def main():
-    # Intermediate CAs on EC2 
+    # Intermediate CAs on Ubuntu
     server_name = "server1"
     intermediate_ca_name = "intermediateCA1"
     ca_dir = BASE_DIR / intermediate_ca_name
     csr_path = ca_dir / "csr" / f"{server_name}.csr"
     output_path = ca_dir / "issued" / f"{server_name}.crt"
-    approved_san="IP:3.128.35.251",  # Elastic IP of EC2, currently manual approval is used, 
-        # Later, approved_sans should be managed by RA or database that stores each server's identity, 
-        # its approved SANs, and other relevant informationf
     approved_san = "DNS:localhost"
     sign_server_csr(approved_san, server_name, intermediate_ca_name)
     pass
