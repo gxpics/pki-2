@@ -12,12 +12,12 @@ Inspect and sign the CSR while the VM is disconnected.
 """
 
 from pathlib import Path
-from common import run_command
+from common import run_command, BASE_DIR
 
 
-def download_csr(intermediate_ca_name="intermediateCA3", remote_host="3.128.35.251",
-                 remote_csr_path="~/pki-2/aws-intermediate-ca/csr/intermediateCA3.csr", 
-                 remote_user="ec2-user", ssh_key_path="~/.ssh/ec2-key.pem"):
+def download_csr(intermediate_ca_name, remote_host,
+                 remote_csr_path="~/pki-2/aws_intermediate_ca/intermediateCA3/csr/intermediateCA3.csr", 
+                 remote_user="ec2-user", ssh_key_path="~/.ssh/my-ec2-key.pem"):
     """
     Download an intermediate CA's CSR from EC2
     into the local root CA's csr directory.
@@ -45,10 +45,11 @@ def download_csr(intermediate_ca_name="intermediateCA3", remote_host="3.128.35.2
 def main():
     intermediate_ca_name = "intermediateCA3"
     remote_host = "18.189.229.149" #"3.128.35.251"
-    remote_csr_path=f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name} /csr/{intermediate_ca_name}.csr"
+    remote_csr_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/csr/{intermediate_ca_name}.csr"
     remote_user = "ec2-user"
-    ssh_key_path="~/.ssh/ec2-key.pem"
-    download_csr(intermediate_ca_name=intermediate_ca_name, remote_host=remote_host
+    ssh_key_path="~/.ssh/my-ec2-key.pem"
+    # chmod 400 "$HOME/.ssh/my-ec2-key.pem"  -- lock down the ssh private key so it is only accessible from the user
+    download_csr(intermediate_ca_name=intermediate_ca_name, remote_host=remote_host,
                  remote_csr_path=remote_csr_path, 
                  remote_user=remote_user, ssh_key_path=ssh_key_path)
 
