@@ -212,8 +212,8 @@ def export_csr_for_intermediate_ca_on_local_VM():
 
 def main():
     # Intermediate CAs on EC2 
-    intermediate_ca_name = "intermediateCA3"
-    server_name = "server3"
+    intermediate_ca_name = "intermediateCA4"
+    server_name = "server4"
     ca_dir = BASE_DIR / intermediate_ca_name
     csr_path = ca_dir / "csr" / f"{server_name}.csr"
     output_path = ca_dir / "issued" / f"{server_name}.crt"
