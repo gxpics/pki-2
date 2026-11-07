@@ -33,7 +33,7 @@ def generate_key(server_name, algorithm, key_name_extension="", options=None):
 
     run_command(command)
 
-def generate_server_csr(server_name, overwrite=False):
+def generate_server_csr(server_name, dns_name="localhost", overwrite=False):
     server_dir = BASE_DIR / server_name
     key_path = server_dir / "private" / f"{server_name}.key"
     csr_path = server_dir / "csr" / f"{server_name}.csr"
@@ -47,7 +47,7 @@ def generate_server_csr(server_name, overwrite=False):
         "-key", str(key_path),
         "-out", str(csr_path),
         "-subj", f"/C=US/ST=New York/L=Rochester/O=Hybrid PKI Lab/CN={server_name}",
-        "-addext", "subjectAltName=DNS:localhost"
+        "-addext", f"subjectAltName=DNS:{dns_name}"
     ]
 
     run_command(command)
@@ -161,7 +161,7 @@ def initialize_server(server_name="server1", mode = "classical"):
     print("server policy:", server_policy)
     generate_key(server_name, server_policy["algorithm"], key_name_extension="", options=server_policy["options"])
 
-    generate_server_csr(server_name)
+    generate_server_csr(server_name, dns_name=server_name)
 
 def main():
 
@@ -171,9 +171,9 @@ def main():
     else:
         mode = "post_quantum"
 
-    server_name = "server3"
+    server_name = "server4"
     hostname ="localhost"
-    intermediate_ca_name = "intermediateCA3"
+    intermediate_ca_name = "intermediateCA4"
     root_ca_name = "rootCA"
     
     #initialize_server(server_name, mode)
@@ -182,8 +182,9 @@ def main():
     server_name=server_name,
     remote_host="18.189.229.149",
     remote_csr_path=f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/csr/{server_name}.csr")
-    # The intermediate CA signs the server's csr
-    # Server cert and the intermediate cert should be placed in the server's certs directory 
+    
+    #The intermediate CA signs the server's csr
+    #Server cert and the intermediate cert should be placed in the server's certs directory 
     
     #create_server_chain(server_name, intermediate_ca_name)
     #verify_server(server_name, hostname, intermediate_ca_name, root_ca_name)
