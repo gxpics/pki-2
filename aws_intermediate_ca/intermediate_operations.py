@@ -94,8 +94,8 @@ validity_days=365):
         DNS:web.example.com
     """
     intermediate_ca_dir = BASE_DIR / intermediate_ca_name 
-    csr_path = intermediate_ca_dir / 'csr' / f'{server_name}.csr' # Path(csr_path)
-    output_path = intermediate_ca_dir / 'certs' / f'{server_name}.crt' # Path(output_path)
+    csr_path = intermediate_ca_dir / 'csr' / f'{server_name}.csr' 
+    output_path = intermediate_ca_dir / 'issued' / f'{server_name}.crt' 
 
     # 1. Validate the approved SAN
     if approved_san.startswith("IP:"):
@@ -176,23 +176,11 @@ validity_days=365):
     run_command([
         "openssl", "verify",
         "-CAfile", str(intermediate_ca_dir / "certs" / "rootCA.crt"),
-        "-untrusted", str(intermediate_ca_dir / "certs" / "intermediateCA1.crt"),
+        "-untrusted", str(intermediate_ca_dir / "certs" / f"{intermediate_ca_name}.crt"),
         str(output_path)
     ])
 
     print(f"Certificate issued: {output_path}")
-
-# Import the signed intermediate certificate returned by the root
-def import_certificate():
-    pass
-
-# Install an authenticated copy of the root CA certificate
-def install_root_certificate():
-    pass
-
-# Confirm the signed certificate matches the intermediate's private key
-def verify_key_pair():
-    pass
 
 def revoke_certificate():
     pass
@@ -214,10 +202,10 @@ def main():
     # Intermediate CAs on EC2 
     intermediate_ca_name = "intermediateCA4"
     server_name = "server4"
-    ca_dir = BASE_DIR / intermediate_ca_name
-    csr_path = ca_dir / "csr" / f"{server_name}.csr"
-    output_path = ca_dir / "issued" / f"{server_name}.crt"
-    approved_san="IP:3.128.35.251",  # Elastic IP of EC2, currently manual approval is used, 
+    # ca_dir = BASE_DIR / intermediate_ca_name
+    # csr_path = ca_dir / "csr" / f"{server_name}.csr"
+    # output_path = ca_dir / "issued" / f"{server_name}.crt"
+    approved_san = f"DNS:{server_name}"# "IP:3.128.35.251",  # currently manual approval is used, 
         # Later, approved_sans should be managed by RA or database that stores each server's identity, 
         # its approved SANs, and other relevant informationf
     sign_server_csr(approved_san, server_name, intermediate_ca_name)
