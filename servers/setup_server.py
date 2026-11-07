@@ -52,6 +52,31 @@ def generate_server_csr(server_name, overwrite=False):
 
     run_command(command)
 
+def upload_server_csr(
+    server_name, remote_host, remote_csr_path,
+    remote_user="ec2-user",
+    ssh_key_path="~/.ssh/my-ec2-key.pem",
+):
+    """
+    Copy a server CSR from the Ubuntu VM to its issuing CA on EC2.
+    Vulnerable to HNDL
+    """
+    local_csr = BASE_DIR / server_name / "csr" / f"{server_name}.csr"
+    if not local_csr.is_file():
+        raise FileNotFoundError(f"Server CSR not found: {local_csr}")
+
+    ssh_key = Path(ssh_key_path).expanduser()
+    if not ssh_key.is_file():
+        raise FileNotFoundError(f"SSH key not found: {ssh_key}")
+
+    command = [
+        "scp",
+        "-i", str(ssh_key),
+        str(local_csr),
+        f"{remote_user}@{remote_host}:{remote_csr_path}",
+    ]
+    run_command(command)
+
 def create_server_chain(server_name, intermediate_name):
     """
     The server must wait until the Intermediate CA has signed its CSR.
@@ -125,12 +150,10 @@ def verify_server(server_name,
     ]
     run_command(command)
 
-def initialize_server(server_name="server1", intermediate_name="intermediateCA1", mode = "classical"):
+def initialize_server(server_name="server1", mode = "classical"):
     """
     mode = either "classical" or "post_quantum"
     """
-    server_dir = BASE_DIR / "servers" / server_name
-    server_key = server_dir / "private" / (server_name + ".key")
     
     create_server_dir(server_name)
 
@@ -140,7 +163,6 @@ def initialize_server(server_name="server1", intermediate_name="intermediateCA1"
 
     generate_server_csr(server_name)
 
-
 def main():
 
     mode_choice  = "c"# input("Choose the mode (c for classical, p for post quantum): ")
@@ -149,19 +171,22 @@ def main():
     else:
         mode = "post_quantum"
 
-    server_name = "server1"
+    server_name = "server3"
     hostname ="localhost"
-    intermediate_ca_name = "intermediateCA1"
+    intermediate_ca_name = "intermediateCA3"
     root_ca_name = "rootCA"
     
-
-    #initialize_server(server_name, intermediate_ca_name, mode)
-
+    #initialize_server(server_name, mode)
+    
+    upload_server_csr(
+    server_name=server_name,
+    remote_host="18.189.229.149",
+    remote_csr_path=f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/csr/{server_name}.csr")
     # The intermediate CA signs the server's csr
     # Server cert and the intermediate cert should be placed in the server's certs directory 
     
-    create_server_chain(server_name, intermediate_ca_name)
-    verify_server(server_name, hostname, intermediate_ca_name, root_ca_name)
+    #create_server_chain(server_name, intermediate_ca_name)
+    #verify_server(server_name, hostname, intermediate_ca_name, root_ca_name)
     
     # 
     # install_nginx_certificate(server_name)

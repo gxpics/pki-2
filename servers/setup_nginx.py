@@ -114,7 +114,7 @@ def reload_nginx():
         print("Nginx is inactive. Starting nginx...")
         run_command(["sudo", "systemctl", "start", "nginx"])
 
-def test_nginx_tls(server_name, hostname="localhost", port=445):
+def test_nginx_tls(server_name, hostname="localhost", port=445, tls_name=None):
     """
     Test the running Nginx TLS server.
 
@@ -124,6 +124,8 @@ def test_nginx_tls(server_name, hostname="localhost", port=445):
       - Certificate is valid for TLS server authentication
       - Certificate matches the expected hostname
     """
+    if tls_name is None:
+        tls_name = hostname
 
     server_dir = BASE_DIR / server_name
     root_crt = server_dir / "certs" / "rootCA.crt"
@@ -136,10 +138,10 @@ def test_nginx_tls(server_name, hostname="localhost", port=445):
     command = [
         "openssl", "s_client",
         "-connect", f"{hostname}:{port}",
-        "-servername", hostname,
+        "-servername", tls_name,
         "-CAfile", str(root_crt),
         "-verify_return_error",
-        "-verify_hostname", hostname,
+        "-verify_hostname", tls_name,
         "-purpose", "sslserver",
         "-showcerts",
         "-brief",
@@ -151,14 +153,14 @@ def test_nginx_tls(server_name, hostname="localhost", port=445):
     print(f"Nginx TLS verification successful: {hostname}:{port}")
     
 def main():
-    server_name = "server1"
+    server_name = "server3"
 
-    # install_nginx_certificate(server_name)
+    #install_nginx_certificate(server_name)
     # generate_nginx_config(server_name)
     # enable_nginx_site(server_name)
     #test_nginx()
     reload_nginx()
-    test_nginx_tls("server1")
-
+    #test_nginx_tls("server1")
+    test_nginx_tls(server_name, hostname="localhost", port=445, tls_name=server_name)
 if __name__ == "__main__":
     main()
