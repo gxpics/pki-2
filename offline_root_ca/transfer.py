@@ -42,16 +42,51 @@ def download_csr(intermediate_ca_name, remote_host,
     print(f"Downloaded CSR to: {local_csr}")
     return local_csr
 
+def upload_certificate(
+    intermediate_ca_name, remote_host,
+    remote_cert_path,
+    remote_user="ec2-user",
+    ssh_key_path="~/.ssh/my-ec2-key.pem", root_cert=False):
+    """Copy a signed intermediate CA certificate from the root CA VM to EC2."""
+    
+    ssh_key_path = Path(ssh_key_path).expanduser()
+    if not ssh_key_path.is_file():
+        raise FileNotFoundError(f"SSH key not found: {ssh_key_path}")
+    if root_cert:
+        local_cert = BASE_DIR / "certs" / "rootCA.crt"
+    else:
+        local_cert = BASE_DIR / "issued" / f"{intermediate_ca_name}.crt"
+    if not local_cert.is_file():
+        raise FileNotFoundError(f"Signed certificate not found: {local_cert}")
+
+    command = [
+        "scp",
+        "-i", str(ssh_key_path),
+        str(local_cert),
+        f"{remote_user}@{remote_host}:{remote_cert_path}",
+    ]
+    run_command(command)
+
 def main():
-    intermediate_ca_name = "intermediateCA3"
+    intermediate_ca_name = "intermediateCA4"
     remote_host = "18.189.229.149" #"3.128.35.251"
     remote_csr_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/csr/{intermediate_ca_name}.csr"
     remote_user = "ec2-user"
     ssh_key_path="~/.ssh/my-ec2-key.pem"
     # chmod 400 "$HOME/.ssh/my-ec2-key.pem"  -- lock down the ssh private key so it is only accessible from the user
-    download_csr(intermediate_ca_name=intermediate_ca_name, remote_host=remote_host,
-                 remote_csr_path=remote_csr_path, 
-                 remote_user=remote_user, ssh_key_path=ssh_key_path)
+    # download_csr(intermediate_ca_name=intermediate_ca_name, remote_host=remote_host,
+    #              remote_csr_path=remote_csr_path, 
+    #              remote_user=remote_user, ssh_key_path=ssh_key_path)
+    
+    remote_cert_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/certs/{intermediate_ca_name}.crt"
+    remote_cert_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/certs/rootCA.crt"    
+    upload_certificate(intermediate_ca_name=intermediate_ca_name,
+                       remote_host=remote_host, 
+                       remote_cert_path=remote_cert_path,
+                       remote_user=remote_user,
+                       ssh_key_path=ssh_key_path,
+                       root_cert=True
+                       )
 
 if __name__ == "__main__":
     main()

@@ -242,9 +242,9 @@ def main():
     # export_cert("rootCA.crt", source_dir = root_dir / "certs") # offline root CA --> transfer
     
     # Check ls /mnt/hgfs/transfer/
-
-    sign_intermediate("intermediateCA2")
-    verify_intermediate("intermediateCA2.crt")
+    intermediate_ca_name = "intermediateCA4"
+    sign_intermediate(intermediate_ca_name)
+    verify_intermediate(f"{intermediate_ca_name}.crt")
 
 if __name__ == "__main__":
     main()
