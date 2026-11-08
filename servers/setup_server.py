@@ -171,23 +171,23 @@ def main():
     else:
         mode = "post_quantum"
 
-    server_name = "server4"
-    hostname ="localhost"
-    intermediate_ca_name = "intermediateCA4"
+    server_name = "server3"
+    hostname ="server3" # "localhost"
+    intermediate_ca_name = "intermediateCA3"
     root_ca_name = "rootCA"
     
     #initialize_server(server_name, mode)
     
-    upload_server_csr(
-    server_name=server_name,
-    remote_host="18.189.229.149",
-    remote_csr_path=f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/csr/{server_name}.csr")
+    # upload_server_csr(
+    # server_name=server_name,
+    # remote_host="18.189.229.149",
+    # remote_csr_path=f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/csr/{server_name}.csr")
     
     #The intermediate CA signs the server's csr
     #Server cert and the intermediate cert should be placed in the server's certs directory 
     
-    #create_server_chain(server_name, intermediate_ca_name)
-    #verify_server(server_name, hostname, intermediate_ca_name, root_ca_name)
+    create_server_chain(server_name, intermediate_ca_name)
+    verify_server(server_name, hostname, intermediate_ca_name, root_ca_name)
     
     # 
     # install_nginx_certificate(server_name)

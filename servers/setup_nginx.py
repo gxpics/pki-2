@@ -30,7 +30,7 @@ def generate_nginx_config(server_name):
     config = f"""
 server {{
     listen 445 ssl;
-    server_name localhost;
+    server_name {server_name};
 
     ssl_certificate /etc/nginx/ssl/{server_name}-chain.crt;
     ssl_certificate_key /etc/nginx/ssl/{server_name}.key; 
@@ -82,17 +82,26 @@ def enable_nginx_site(server_name):
 
     print(f"Nginx site enabled: {server_name}")
 
-def enable_nginx_site(server_name):
-    """
-    Enable an Nginx website by creating a symbolic link from the 
-    sites-enabled directory to its configuration file in sites-available.
-    """
-    run_command([
-        "sudo", "ln",
-        "-s",
-        f"/etc/nginx/sites-available/{server_name}.conf",
-        f"/etc/nginx/sites-enabled/{server_name}.conf"
-    ])
+
+# def enable_nginx_site(server_name):
+#     source = Path("/etc/nginx/sites-available") / f"{server_name}.conf"
+#     link = Path("/etc/nginx/sites-enabled") / source.name
+
+#     if link.is_symlink():
+#         if link.resolve() == source.resolve():
+#             print(f"Nginx site already enabled: {server_name}")
+#             return
+
+#         raise RuntimeError(
+#             f"Symbolic link points to an unexpected location: "
+#             f"{link} -> {link.readlink()}"
+#         )
+
+#     if link.exists():
+#         raise RuntimeError(f"Expected a symbolic link at {link}, but found another entry.")
+
+#     run_command(["sudo", "ln", "-sT", str(source), str(link)])
+#     print(f"Nginx site enabled: {server_name}")
 
 def test_nginx():
     run_command(["sudo", "nginx","-t"])
@@ -154,13 +163,13 @@ def test_nginx_tls(server_name, hostname="localhost", port=445, tls_name=None):
     
 def main():
     server_name = "server3"
-
-    #install_nginx_certificate(server_name)
+    host_name = "localhost"
+    # install_nginx_certificate(server_name)
     # generate_nginx_config(server_name)
     # enable_nginx_site(server_name)
-    #test_nginx()
+    # test_nginx()
+
     reload_nginx()
-    #test_nginx_tls("server1")
     test_nginx_tls(server_name, hostname="localhost", port=445, tls_name=server_name)
 if __name__ == "__main__":
     main()
