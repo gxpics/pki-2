@@ -243,7 +243,7 @@ def main():
     
     # Check ls /mnt/hgfs/transfer/
     intermediate_ca_name = "intermediateCA4"
-    sign_intermediate(intermediate_ca_name)
+    sign_intermediate(intermediate_ca_name)  
     verify_intermediate(f"{intermediate_ca_name}.crt")
 
 if __name__ == "__main__":

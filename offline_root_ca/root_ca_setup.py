@@ -48,8 +48,8 @@ def initialize_root_ca():
 #    find /usr/lib /usr/local/lib -name 'libsofthsm2.so' 2>/dev/null
 def generate_root_config(
     default_md=None,
-    pkcs11_module=None,
-    softhsm_module=None,
+    pkcs11_module="/usr/lib/x86_64-linux-gnu/ossl-modules/pkcs11.so",
+    softhsm_module="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so",
     token_label="RootCA",
     key_label="rootCA"
 ):
@@ -142,6 +142,7 @@ subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid:always,issuer
 basicConstraints       = critical, CA:true, pathlen:0
 keyUsage               = critical, keyCertSign, cRLSign
+crlDistributionPoints = URI:https://crl-bucket-pki-lab.s3.us-east-2.amazonaws.com/root-ca.crl
 """
 
     config_path = BASE_DIR / "openssl.cnf"
@@ -307,7 +308,13 @@ def setup(mode = "classical"):
         )
 
 if __name__ == "__main__":
-    setup(mode="classical")
-
-    # root_policy = SUPPORTED_ALGORITHMS[PKI_POLICY["classical"]["root"]]
-    # generate_root_config(root_policy["digest"])
+    #setup(mode="classical")
+    
+    root_policy = SUPPORTED_ALGORITHMS[PKI_POLICY["classical"]["root"]]
+    generate_root_config(
+        default_md=root_policy["digest"], #"sha384"
+        pkcs11_module="/usr/lib/x86_64-linux-gnu/ossl-modules/pkcs11.so",
+        softhsm_module="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so",
+        token_label="RootCA",
+        key_label="rootCA"
+        )

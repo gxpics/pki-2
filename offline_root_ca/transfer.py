@@ -68,9 +68,9 @@ def upload_certificate(
         f"{remote_user}@{remote_host}:{remote_cert_path}",
     ]
     run_command(command)
-
+1
 def main():
-    intermediate_ca_name = "intermediateCA3"
+    intermediate_ca_name = "intermediateCA4"
     remote_host = "18.189.229.149" #"3.128.35.251"
     remote_csr_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/csr/{intermediate_ca_name}.csr"
     remote_user = "ec2-user"
@@ -79,15 +79,15 @@ def main():
     # download_csr(intermediate_ca_name=intermediate_ca_name, remote_host=remote_host,
     #              remote_csr_path=remote_csr_path, 
     #              remote_user=remote_user, ssh_key_path=ssh_key_path)
-    
+    #remote_cert_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/certs/rootCA.crt"  
     remote_cert_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/certs/{intermediate_ca_name}.crt"
-    remote_cert_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/certs/rootCA.crt"    
+      
     upload_certificate(intermediate_ca_name=intermediate_ca_name,
                        remote_host=remote_host, 
                        remote_cert_path=remote_cert_path,
                        remote_user=remote_user,
                        ssh_key_path=ssh_key_path,
-                       root_cert=True
+                       root_cert=False
                        )
 
 if __name__ == "__main__":
