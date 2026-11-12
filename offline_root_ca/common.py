@@ -3,18 +3,23 @@ import subprocess
 
 BASE_DIR = Path.home() / "pki-2" / "offline_root_ca"
 
-def run_command(command):
+def run_command(command, *, capture_output=False):
     try:
+        command = [str(arg) for arg in command]
         print("\nRunning:")
-        print(" ".join(str(x) for x in command))
+        print(" ".join(command))
         print()
 
-        subprocess.run(
-            [str(x) for x in command],
-            check=True
+        return subprocess.run(
+            command,
+            check=True,
+            capture_output=capture_output,
+            text=True,
         )
 
     except subprocess.CalledProcessError as e:
         print("Command failed.")
         print(e)
+        if e.stderr:
+            print(e.stderr.rstrip())
         raise

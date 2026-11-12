@@ -9,6 +9,10 @@ from pathlib import Path
 import subprocess
 import shutil
 from common import BASE_DIR, run_command
+from tempfile import TemporaryDirectory
+import os
+import subprocess
+from datetime import datetime, timezone
 
 # move csr from /mnt/fghs/transfer --> rootCA/csr
 def import_csr(csr_name, source_dir="/mnt/hgfs/transfer", 
@@ -31,11 +35,9 @@ def import_csr(csr_name, source_dir="/mnt/hgfs/transfer",
     # CSR signature verification establishes proof of possession of the corresponding 
     # private key. It does not establish that the requester is authorized to receive 
     # an intermediate CA certificate. That requires a separate approval step.
-    subprocess.run(
+    run_command(
         ["openssl", "req", "-in", str(source),
-         "-noout", "-verify"],
-        check=True
-    )
+         "-noout", "-verify"])
 
     # Copy CSR
     shutil.copy2(source, destination)
@@ -107,35 +109,105 @@ def revoke_certificate(intermediate_name, cert_dir=BASE_DIR / "issued"):
     
     print(f"Certificate revoked: {cert_path}")
 
-def generate_crl(crl_dir=BASE_DIR / "crl"):
-    """
-    Generate a Certificate Revocation List (CRL)
-    using the Root CA database.
-    The CRL contains certificates revoked by this Root CA.
-    """
-
+def generate_crl(crl_dir=BASE_DIR / "crl", *, export_path=None):
+    """Generate a signed root CA CRL and optionally export it as DER."""
+    crl_dir = Path(crl_dir)
     if not crl_dir.is_dir():
-        raise NotADirectoryError(
-            f"CRL directory not found: {crl_dir}"
+        raise NotADirectoryError(f"CRL directory not found: {crl_dir}")
+
+    pem_path = crl_dir / "root-ca.crl"
+    root_cert = BASE_DIR / "certs" / "rootCA.crt"
+
+    if export_path is not None:
+        export_path = Path(export_path)
+        if export_path.resolve() == pem_path.resolve():
+            raise ValueError("Use separate paths for the PEM CRL and DER export.")
+        export_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with TemporaryDirectory(dir=crl_dir) as temp_dir:
+        staged_pem = Path(temp_dir) / "root-ca.crl"
+
+        run_command([
+            "openssl", "ca", "-gencrl",
+            "-config", BASE_DIR / "openssl.cnf",
+            "-out", staged_pem,
+        ])
+
+        if export_path is not None:
+            with TemporaryDirectory(dir=export_path.parent) as export_temp_dir:
+                staged_der = Path(export_temp_dir) / "root-ca.crl"
+
+                run_command([
+                    "openssl", "crl",
+                    "-inform", "PEM", "-in", staged_pem,
+                    "-outform", "DER", "-out", staged_der,
+                ])
+                run_command([
+                    "openssl", "crl",
+                    "-inform", "DER", "-in", staged_der,
+                    "-CAfile", root_cert, "-no-CApath", "-no-CAstore",
+                    "-verify", "-noout", "-lastupdate", "-nextupdate",
+                ])
+
+                staged_pem.replace(pem_path)
+                staged_der.replace(export_path)
+            print(f"Verified DER CRL exported: {export_path}")
+        else:
+            staged_pem.replace(pem_path)
+
+    print(f"PEM CRL generated: {pem_path}")
+    return pem_path
+
+
+def verify_root_crl(crl_path, root_cert_path):
+    """Verify the signature and validity period of a DER root CA CRL."""
+    result = subprocess.run(
+        [
+            "openssl", "crl",
+            "-inform", "DER",
+            "-in", str(crl_path),
+            "-CAfile", str(root_cert_path),
+            "-no-CApath",
+            "-no-CAstore",
+            "-verify",
+            "-noout",
+            "-lastupdate",
+            "-nextupdate",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "LC_ALL": "C"},
+    )
+
+    fields = dict(
+        line.split("=", 1)
+        for line in result.stdout.splitlines()
+        if "=" in line
+    )
+
+    date_format = "%b %d %H:%M:%S %Y GMT"
+    try:
+        last_update = datetime.strptime(
+            fields["lastUpdate"], date_format
+        ).replace(tzinfo=timezone.utc)
+        next_update = datetime.strptime(
+            fields["nextUpdate"], date_format
+        ).replace(tzinfo=timezone.utc)
+    except (KeyError, ValueError) as exc:
+        raise ValueError(f"Missing or invalid CRL update dates in {crl_path}") from exc
+
+    now = datetime.now(timezone.utc)
+    if not last_update <= now < next_update:
+        raise ValueError(
+            f"CRL is outside its validity period: "
+            f"lastUpdate={last_update.isoformat()}, "
+            f"nextUpdate={next_update.isoformat()}"
         )
 
-    crl_path = crl_dir / "rootCA.crl"
+    print(f"CRL verified: {crl_path}")
+    print(f"Next update: {next_update.isoformat()}")
 
-    command = [
-        "openssl",
-        "ca",
-        "-gencrl",
-        "-config",
-        BASE_DIR / "openssl.cnf",
-        "-out",
-        crl_path
-    ]
-
-    run_command(command)
-
-    print(f"CRL generated: {crl_path}")
-
-    return crl_path
 
 def archive_certificate(
     intermediate_name,
@@ -242,10 +314,17 @@ def main():
     # export_cert("rootCA.crt", source_dir = root_dir / "certs") # offline root CA --> transfer
     
     # Check ls /mnt/hgfs/transfer/
-    intermediate_ca_name = "intermediateCA4"
-    sign_intermediate(intermediate_ca_name)  
-    verify_intermediate(f"{intermediate_ca_name}.crt")
-
+    # intermediate_ca_name = "intermediateCA4"
+    # sign_intermediate(intermediate_ca_name)  
+    # verify_intermediate(f"{intermediate_ca_name}.crt")
+    
+    export_path = BASE_DIR / "export" / "root-ca.crl"
+    #generate_crl(export_path=export_path)
+  
+    verify_root_crl(
+    export_path,
+    BASE_DIR / "certs" / "rootCA.crt",
+    )
 if __name__ == "__main__":
     main()
 
