@@ -105,7 +105,7 @@ def revoke_certificate(intermediate_name, cert_dir=BASE_DIR / "issued"):
     ]
 
     run_command(command)
-    generate_crl()
+    # generate_crl()
     
     print(f"Certificate revoked: {cert_path}")
 
