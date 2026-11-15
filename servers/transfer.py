@@ -1,7 +1,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from common import run_command
+from .common import run_command
 
 
 def download_server_certificate(

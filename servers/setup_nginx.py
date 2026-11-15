@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess
-from common import  run_command, BASE_DIR
+from .common import  run_command, BASE_DIR
 
 def install_nginx_certificate(server_name):
     """

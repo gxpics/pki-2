@@ -12,7 +12,7 @@ Inspect and sign the CSR while the VM is disconnected.
 """
 
 from pathlib import Path
-from common import run_command, BASE_DIR
+from .common import run_command, BASE_DIR
 
 
 def download_csr(intermediate_ca_name, remote_host,

@@ -3,8 +3,8 @@ TLS certificate management
 """
 
 from pathlib import Path
-from common import  run_command, BASE_DIR
-from policy import SUPPORTED_ALGORITHMS, PKI_POLICY
+from .common import  run_command, BASE_DIR
+from .policy import SUPPORTED_ALGORITHMS, PKI_POLICY
 
 def create_server_dir(server_name):
     directories = ["certs", "csr", "private"]

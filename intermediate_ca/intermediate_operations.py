@@ -9,8 +9,8 @@ import shutil
 import ipaddress
 import re
 from cryptography import x509
-from policy import PKI_POLICY, SUPPORTED_ALGORITHMS
-from common import BASE_DIR, run_command
+from .policy import PKI_POLICY, SUPPORTED_ALGORITHMS
+from .common import BASE_DIR, run_command
 
 def verify_intermediate_cert(ca_dir, ca_name):
     """
@@ -178,18 +178,6 @@ validity_days=365):
     ])
 
     print(f"Certificate issued: {output_path}")
-
-# Import the signed intermediate certificate returned by the root
-def import_certificate():
-    pass
-
-# Install an authenticated copy of the root CA certificate
-def install_root_certificate():
-    pass
-
-# Confirm the signed certificate matches the intermediate's private key
-def verify_key_pair():
-    pass
 
 def revoke_certificate():
     pass

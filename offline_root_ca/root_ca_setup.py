@@ -2,8 +2,8 @@
 This program creates an offline root CA structure.
 """
 from pathlib import Path
-from common import BASE_DIR, run_command
-from policy import PKI_POLICY, SUPPORTED_ALGORITHMS
+from .common import BASE_DIR, run_command
+from .policy import PKI_POLICY, SUPPORTED_ALGORITHMS
 from hsm_setup import generate_key, inspect_keys, verify_root_key
 
 def create_root_ca_directories():

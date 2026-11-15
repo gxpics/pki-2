@@ -2,16 +2,20 @@ import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from intermediate_ca.intermediate_operations import sign_server_csr
 
-REPO_DIR = Path(__file__).resolve().parents[1]
-CA_DIR = REPO_DIR / "intermediateCA1"
+intermediate_ca_name = "intermediateCA1"
+server_name = "server1"
+
+TOP_DIR = Path.home() / "pki-2"  # TOP_DIR = Path(__file__).resolve().parents[1] 
+CA_DIR = TOP_DIR / "intermediate_ca" / f"{intermediate_ca_name}" 
 CERT_PROFILE = "server_cert"
 MAX_CSR_BYTES = 16 * 1024
 
 
 class IssuanceHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        if self.path != "/certificates":
+        if self.path != "/certificates":  # http://127.0.0.1:8000/certificates
             self.send_error(404, "Unknown endpoint")
             return
 
@@ -25,7 +29,7 @@ class IssuanceHandler(BaseHTTPRequestHandler):
             self.send_error(400, "Send a PEM CSR up to 16 KiB")
             return
 
-        csr = self.rfile.read(size)
+        csr = self.rfile.read(size)  # Receoved CSR file
 
         try:
             with TemporaryDirectory() as directory:
@@ -33,21 +37,22 @@ class IssuanceHandler(BaseHTTPRequestHandler):
                 cert_path = Path(directory) / "certificate.pem"
                 csr_path.write_bytes(csr)
 
-                subprocess.run(
-                    [
-                        "openssl", "ca",
-                        "-batch", "-notext",
-                        "-config", str(CA_DIR / "openssl.cnf"),
-                        "-extensions", CERT_PROFILE,
-                        "-in", str(csr_path),
-                        "-out", str(cert_path),
-                    ],
-                    cwd=CA_DIR,
-                    stdin=subprocess.DEVNULL,
-                    capture_output=True,
-                    check=True,
-                    timeout=15,
-                )
+                sign_server_csr(approved_san="DNS:localhost", server_name=server_name, intermediate_ca_name=intermediate_ca_name)
+                # subprocess.run(
+                #     [
+                #         "openssl", "ca",
+                #         "-batch", "-notext",
+                #         "-config", str(CA_DIR / "openssl.cnf"),
+                #         "-extensions", CERT_PROFILE,
+                #         "-in", str(csr_path),
+                #         "-out", str(cert_path),
+                #     ],
+                #     cwd=CA_DIR,
+                #     stdin=subprocess.DEVNULL,
+                #     capture_output=True,
+                #     check=True,
+                #     timeout=15,
+                # )
 
                 certificate = cert_path.read_bytes()
         except subprocess.CalledProcessError as error:

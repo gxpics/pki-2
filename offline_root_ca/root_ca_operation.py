@@ -8,7 +8,7 @@ PKI uses three software components:
 from pathlib import Path
 import subprocess
 import shutil
-from common import BASE_DIR, run_command
+from .common import BASE_DIR, run_command
 from tempfile import TemporaryDirectory
 import os
 import subprocess
