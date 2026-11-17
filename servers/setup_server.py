@@ -160,8 +160,8 @@ def initialize_server(server_name="server1", mode = "classical"):
     server_policy = SUPPORTED_ALGORITHMS[PKI_POLICY[mode]["server"]]
     print("server policy:", server_policy)
     generate_key(server_name, server_policy["algorithm"], key_name_extension="", options=server_policy["options"])
-
-    generate_server_csr(server_name, dns_name=server_name)
+    
+    generate_server_csr(server_name, dns_name=f"{server_name}.com")
 
 def main():
 
@@ -171,12 +171,12 @@ def main():
     else:
         mode = "post_quantum"
 
-    server_name = "server3"
-    hostname ="server3" # "localhost"
-    intermediate_ca_name = "intermediateCA3"
+    server_name = "server1"
+    hostname ="server1" # "localhost"
+    intermediate_ca_name = "intermediateCA1"
     root_ca_name = "rootCA"
     
-    #initialize_server(server_name, mode)
+    initialize_server(server_name, mode)
     
     # upload_server_csr(
     # server_name=server_name,
@@ -186,8 +186,8 @@ def main():
     #The intermediate CA signs the server's csr
     #Server cert and the intermediate cert should be placed in the server's certs directory 
     
-    create_server_chain(server_name, intermediate_ca_name)
-    verify_server(server_name, hostname, intermediate_ca_name, root_ca_name)
+    # create_server_chain(server_name, intermediate_ca_name)
+    # verify_server(server_name, hostname, intermediate_ca_name, root_ca_name)
     
     # 
     # install_nginx_certificate(server_name)
