@@ -142,7 +142,7 @@ def main():
     allowed_dns_by_server = {"server1": ["server1.com"]}
     csr_pem = Path("intermediate_ca/intermediateCA1/csr/server1.csr").read_bytes()
 
-    with closing(sqlite3.connect("enrollment.db")) as db:
+    with closing(sqlite3.connect("./api/enrollment.db")) as db:
         init_enrollment_db(db)
         token = create_enrollment_token(db, "server1")
         server_id, approved_san = authorize_enrollment(
