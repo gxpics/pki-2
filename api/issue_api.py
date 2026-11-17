@@ -3,19 +3,22 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from intermediate_ca.intermediate_operations import sign_server_csr
+from contextlib import closing
+from .enrollment import authorize_enrollment, ALLOWED_DNS_BY_SERVER, EnrollmentError
+import sqlite3
 
 intermediate_ca_name = "intermediateCA1"
-server_name = "server1"
 
 TOP_DIR = Path.home() / "pki-2"  # TOP_DIR = Path(__file__).resolve().parents[1] 
+server_name = "server1"
+ENROLLMENT_DB_PATH = TOP_DIR / "api" / "enrollment.db"
 CA_DIR = TOP_DIR / "intermediate_ca" / f"{intermediate_ca_name}" 
-CERT_PROFILE = "server_cert"
 MAX_CSR_BYTES = 16 * 1024
 
 
 class IssuanceHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        if self.path != "/certificates":  # http://127.0.0.1:8000/certificates
+        if self.path != "/certificates": 
             self.send_error(404, "Unknown endpoint")
             return
 
@@ -25,35 +28,54 @@ class IssuanceHandler(BaseHTTPRequestHandler):
             self.send_error(400, "Invalid Content-Length")
             return
 
+        parts = self.headers.get("Authorization", "").split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            self.send_response(401)
+            self.send_header("WWW-Authenticate", "Bearer")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+
+        token = parts[1]
+
         if not 0 < size <= MAX_CSR_BYTES:
             self.send_error(400, "Send a PEM CSR up to 16 KiB")
             return
 
         csr = self.rfile.read(size)  # Receoved CSR file
+        
+        # Authorize the token and CSR before signing
+        if len(csr) != size:
+            self.send_error(400, "Incomplete CSR")
+            return
 
+        try:
+            with closing(sqlite3.connect(ENROLLMENT_DB_PATH)) as db:
+                with db:
+                    server_id, approved_san = authorize_enrollment(
+                        token, csr, db, ALLOWED_DNS_BY_SERVER
+                    )
+        except EnrollmentError:
+            self.send_error(403, "Enrollment rejected")
+            return
+        except sqlite3.Error as error:
+            self.log_error("%s", error)
+            self.send_error(500, "Could not check enrollment")
+            return
         try:
             with TemporaryDirectory() as directory:
                 csr_path = Path(directory) / "request.csr"
                 cert_path = Path(directory) / "certificate.pem"
                 csr_path.write_bytes(csr)
 
-                sign_server_csr(approved_san="DNS:localhost", server_name=server_name, intermediate_ca_name=intermediate_ca_name)
-                # subprocess.run(
-                #     [
-                #         "openssl", "ca",
-                #         "-batch", "-notext",
-                #         "-config", str(CA_DIR / "openssl.cnf"),
-                #         "-extensions", CERT_PROFILE,
-                #         "-in", str(csr_path),
-                #         "-out", str(cert_path),
-                #     ],
-                #     cwd=CA_DIR,
-                #     stdin=subprocess.DEVNULL,
-                #     capture_output=True,
-                #     check=True,
-                #     timeout=15,
-                # )
-
+                #sign_server_csr(approved_san="DNS:localhost", server_name=server_name, intermediate_ca_name=intermediate_ca_name)
+                sign_server_csr(
+                    approved_san=approved_san,
+                    server_name=server_id,
+                    intermediate_ca_name=self.server.intermediate_ca_name,
+                    csr_path=csr_path,
+                    cert_path=cert_path,
+                )
                 certificate = cert_path.read_bytes()
         except subprocess.CalledProcessError as error:
             self.log_error("%s", error.stderr.decode(errors="replace"))
@@ -72,6 +94,8 @@ class IssuanceHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    with HTTPServer(("127.0.0.1", 8000), IssuanceHandler) as server:
+    intermediate_ca_name = "intermediateCA1"
+    with HTTPServer(("127.0.0.1", 8000), IssuanceHandler) as httpd:
+        httpd.intermediate_ca_name = intermediate_ca_name
         print("Listening on http://127.0.0.1:8000")
-        server.serve_forever()
+        httpd.serve_forever()

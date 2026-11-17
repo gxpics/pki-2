@@ -8,6 +8,13 @@ from cryptography.exceptions import UnsupportedAlgorithm
 from pathlib import Path
 from contextlib import closing
 
+ALLOWED_DNS_BY_SERVER = {
+    "server1": ["server1.com"],
+    "server2": ["server2.com"],
+    "server3": ["server3.com"],
+    "server4": ["server4.com"],
+}
+
 class EnrollmentError(Exception):
     """The request failed an enrollment check."""
 
@@ -138,15 +145,21 @@ def authorize_enrollment(
 
     return server_id, approved_san
 
+def get_token(server_id):
+    with closing(sqlite3.connect("./api/enrollment.db")) as db:
+        token = create_enrollment_token(db, "server1")
+        return token
+    
 def main():
-    allowed_dns_by_server = {"server1": ["server1.com"]}
-    csr_pem = Path("intermediate_ca/intermediateCA1/csr/server1.csr").read_bytes()
 
     with closing(sqlite3.connect("./api/enrollment.db")) as db:
         init_enrollment_db(db)
-        token = create_enrollment_token(db, "server1")
-        server_id, approved_san = authorize_enrollment(
-            token, csr_pem, db, allowed_dns_by_server
+    
+    token = get_token(server_id="server1")
+    csr_pem = Path("intermediate_ca/intermediateCA1/csr/server1.csr").read_bytes()
+    
+    server_id, approved_san = authorize_enrollment(
+        token, csr_pem, db, ALLOWED_DNS_BY_SERVER
         )
 
 if __name__ == "__main__":
