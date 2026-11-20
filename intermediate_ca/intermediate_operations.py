@@ -80,8 +80,8 @@ def verify_csr_san(csr_path, approved_san):
 
     print("CSR SAN verification successful")
 
-def sign_server_csr(approved_san, server_name="server1", intermediate_ca_name="intermediateCA1", #csr_path, approved_san, output_path, 
-validity_days=365):
+def sign_server_csr(approved_san, server_name="server1", intermediate_ca_name="intermediateCA1", 
+validity_days=365, csr_path=None, cert_path=None):
     """
     Sign a TLS server CSR using the Intermediate CA.
 
@@ -90,10 +90,15 @@ validity_days=365):
         IP:203.0.113.10
         DNS:web.example.com
     """
-    intermediate_ca_dir = BASE_DIR / intermediate_ca_name 
-    csr_path = intermediate_ca_dir / 'csr' / f'{server_name}.csr' # Path(csr_path)
-    output_path = intermediate_ca_dir / 'certs' / f'{server_name}.crt' # Path(output_path)
+    intermediate_ca_dir = BASE_DIR / intermediate_ca_name
+    default_csr_path = intermediate_ca_dir / "csr" / f"{server_name}.csr"
+    default_cert_path = intermediate_ca_dir / "issued" / f"{server_name}.crt"
 
+     
+    csr_path = Path(csr_path) if csr_path is not None else default_csr_path
+    output_path = Path(cert_path) if cert_path is not None else default_cert_path 
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
     # 1. Validate the approved SAN
     if approved_san.startswith("IP:"):
         ip = approved_san[3:]
@@ -173,17 +178,11 @@ validity_days=365):
     run_command([
         "openssl", "verify",
         "-CAfile", str(intermediate_ca_dir / "certs" / "rootCA.crt"),
-        "-untrusted", str(intermediate_ca_dir / "certs" / "intermediateCA1.crt"),
+        "-untrusted", str(intermediate_ca_dir / "certs" / f"{intermediate_ca_name}.crt"),
         str(output_path)
     ])
 
     print(f"Certificate issued: {output_path}")
-
-def revoke_certificate():
-    pass
-
-def generate_crl():
-    pass
 
 def export_csr_for_intermediate_ca_on_local_VM():
     ca_name = "intermediateCA1"

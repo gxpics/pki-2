@@ -33,7 +33,7 @@ def init_enrollment_db(db: sqlite3.Connection) -> None:
 def create_enrollment_token(
     db: sqlite3.Connection,
     server_id: str,
-    ttl_seconds: int = 300,
+    ttl_seconds: int = 3000,
 ) -> str:
     """Store the token hash and return the token for the enrolling client."""
     if not server_id.strip():
@@ -156,11 +156,12 @@ def main():
         init_enrollment_db(db)
     
     token = get_token(server_id="server1")
-    csr_pem = Path("intermediate_ca/intermediateCA1/csr/server1.csr").read_bytes()
+    print(token) 
+    # csr_pem = Path("intermediate_ca/intermediateCA1/csr/server1.csr").read_bytes()
     
-    server_id, approved_san = authorize_enrollment(
-        token, csr_pem, db, ALLOWED_DNS_BY_SERVER
-        )
+    # server_id, approved_san = authorize_enrollment(
+    #     token, csr_pem, db, ALLOWED_DNS_BY_SERVER
+    #     )
 
 if __name__ == "__main__":
     main()

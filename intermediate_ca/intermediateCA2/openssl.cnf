@@ -1,0 +1,54 @@
+
+[ ca ]
+default_ca = CA_default
+
+[ CA_default ]
+dir               = /home/gxpics/pki-2/intermediate_ca/intermediateCA2
+certs             = $dir/certs
+crl_dir           = $dir/crl
+new_certs_dir     = $dir/newcerts
+database          = $dir/index.txt
+serial            = $dir/serial
+private_key       = $dir/private/intermediateCA2.key
+certificate       = $dir/certs/intermediateCA2.crt
+
+# CRL configuration
+crlnumber         = $dir/crlnumber
+crl               = $dir/crl/intermediate.crl.pem
+default_crl_days  = 30
+
+# Allow certificate renewal with the same subject name
+unique_subject    = no # permits multiple valid certificates with the same subject name
+
+default_md = sha384
+default_days      = 1825
+policy            = policy_loose
+copy_extensions   = copy  # allows requested extensions such as Subject Alternative Names (SANs) to be copied from CSRs. Never use this setting to approve arbitrary CSRs automatically.
+
+[ policy_loose ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+prompt             = no
+distinguished_name = req_distinguished_name
+
+[ req_distinguished_name ]
+C  = US
+ST = New York
+L  = Rochester
+O  = PKI Lab
+OU = Intermediate CA
+CN = intermediateCA2
+
+[ server_cert ]
+basicConstraints       = critical, CA:false
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid,issuer
+keyUsage               = critical, digitalSignature
+extendedKeyUsage       = serverAuth

@@ -55,20 +55,22 @@ class IssuanceHandler(BaseHTTPRequestHandler):
                     server_id, approved_san = authorize_enrollment(
                         token, csr, db, ALLOWED_DNS_BY_SERVER
                     )
-        except EnrollmentError:
+    
+        except EnrollmentError as exc:
+            print(f"Enrollment rejected: {exc!r}", flush=True)
             self.send_error(403, "Enrollment rejected")
             return
         except sqlite3.Error as error:
             self.log_error("%s", error)
             self.send_error(500, "Could not check enrollment")
             return
+        
         try:
             with TemporaryDirectory() as directory:
                 csr_path = Path(directory) / "request.csr"
                 cert_path = Path(directory) / "certificate.pem"
                 csr_path.write_bytes(csr)
 
-                #sign_server_csr(approved_san="DNS:localhost", server_name=server_name, intermediate_ca_name=intermediate_ca_name)
                 sign_server_csr(
                     approved_san=approved_san,
                     server_name=server_id,
@@ -99,3 +101,19 @@ if __name__ == "__main__":
         httpd.intermediate_ca_name = intermediate_ca_name
         print("Listening on http://127.0.0.1:8000")
         httpd.serve_forever()
+
+
+'''
+read -rsp "Enrollment token: " ENROLLMENT_TOKEN
+echo
+
+curl --silent --show-error --fail-with-body \
+  -H "Authorization: Bearer ${ENROLLMENT_TOKEN}" \
+  -H "Content-Type: application/pkcs10" \
+  --data-binary @server1.csr \
+  -o server1.crt \
+  -w "HTTP %{http_code}\n" \
+  http://127.0.0.1:8000/certificates
+
+unset ENROLLMENT_TOKEN
+'''

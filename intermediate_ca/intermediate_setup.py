@@ -7,8 +7,8 @@ This program is used to set up intermediate CAs on Ubuntu.
 from pathlib import Path
 import subprocess
 import shutil
-from policy import PKI_POLICY, SUPPORTED_ALGORITHMS
-from common import BASE_DIR, run_command
+from .policy import PKI_POLICY, SUPPORTED_ALGORITHMS
+from .common import BASE_DIR, run_command
 
 def create_ca_directories(ca_name):  # used for any CAs including root or intermediate
     ca_dir = BASE_DIR / ca_name
