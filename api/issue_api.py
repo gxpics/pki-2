@@ -10,9 +10,7 @@ import sqlite3
 intermediate_ca_name = "intermediateCA1"
 
 TOP_DIR = Path.home() / "pki-2"  # TOP_DIR = Path(__file__).resolve().parents[1] 
-server_name = "server1"
 ENROLLMENT_DB_PATH = TOP_DIR / "api" / "enrollment.db"
-CA_DIR = TOP_DIR / "intermediate_ca" / f"{intermediate_ca_name}" 
 MAX_CSR_BYTES = 16 * 1024
 
 
