@@ -146,7 +146,7 @@ def authorize_enrollment(
     return server_id, approved_san
 
 def get_token(server_id):
-    with closing(sqlite3.connect("./api/enrollment.db")) as db:
+    with closing(sqlite3.connect("./aws_api/enrollment.db")) as db:
         token = create_enrollment_token(db, "server1")
         return token
     

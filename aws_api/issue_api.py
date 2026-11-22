@@ -14,6 +14,15 @@ MAX_CSR_BYTES = 16 * 1024
 
 
 class IssuanceHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+    if self.path == "/health":
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"ok")
+        return
+
+    self.send_error(404)
+    
     def do_POST(self):
         if self.path != "/certificates": 
             self.send_error(404, "Unknown endpoint")
@@ -96,7 +105,7 @@ if __name__ == "__main__":
     intermediate_ca_name = "intermediateCA3"
     with HTTPServer(("127.0.0.1", 8000), IssuanceHandler) as httpd:
         httpd.intermediate_ca_name = intermediate_ca_name
-        print("Listening on http://127.0.0.1:8000")
+        print("Listening on http://0.0.0.0:8000")
         httpd.serve_forever()
 
 
