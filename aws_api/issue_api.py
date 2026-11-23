@@ -34,7 +34,8 @@ class IssuanceHandler(BaseHTTPRequestHandler):
             self.send_error(400, "Invalid Content-Length")
             return
 
-        parts = self.headers.get("Authorization", "").split()
+        #parts = self.headers.get("Authorization", "").split()
+        parts = self.headers.get("X-Enrollment-Token", "").split()
         if len(parts) != 2 or parts[0].lower() != "bearer":
             self.send_response(401)
             self.send_header("WWW-Authenticate", "Bearer")
@@ -110,16 +111,31 @@ if __name__ == "__main__":
 
 
 '''
+rAlXMIKa2k6UZ_9_rS_X-orswTyOh_snSsteBHQmC98
+read -rsp "Enrollment token: " ENROLLMENT_TOKEN
+printf '\n'
+
+awscurl --service execute-api --region us-east-2 \
+  -X POST \
+  -H 'Content-Type: application/pkcs10' \
+  -H "X-Enrollment-Token: Bearer ${ENROLLMENT_TOKEN}" \
+  -d @server3.csr \
+  --data-binary \
+  -o server3-response.txt \
+  'https://243bjs8e34.execute-api.us-east-2.amazonaws.com/test/certificates'
+
+unset ENROLLMENT_TOKEN
+'''
+#vtWyVosSSM_uwk5DZPBGwRfaIf6emCit4of2jpXqkxI
+'''
 read -rsp "Enrollment token: " ENROLLMENT_TOKEN
 echo
 
-curl --silent --show-error --fail-with-body \
+awscurl --service execute-api --region us-east-2 -X POST \
   -H "Authorization: Bearer ${ENROLLMENT_TOKEN}" \
   -H "Content-Type: application/pkcs10" \
-  --data-binary @server1.csr \
-  -o server1.crt \
-  -w "HTTP %{http_code}\n" \
-  http://127.0.0.1:8000/certificates
+  -d @server3.csr --data-binary \
+  "https://243bjs8e34.execute-api.us-east-2.amazonaws.com/test/certificates"
 
 unset ENROLLMENT_TOKEN
 '''
