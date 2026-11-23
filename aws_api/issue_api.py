@@ -15,13 +15,13 @@ MAX_CSR_BYTES = 16 * 1024
 
 class IssuanceHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-    if self.path == "/health":
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"ok")
-        return
+        if self.path == "/health":
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+            return
 
-    self.send_error(404)
+        self.send_error(404)
     
     def do_POST(self):
         if self.path != "/certificates": 
@@ -34,7 +34,8 @@ class IssuanceHandler(BaseHTTPRequestHandler):
             self.send_error(400, "Invalid Content-Length")
             return
 
-        parts = self.headers.get("Authorization", "").split()
+        #parts = self.headers.get("Authorization", "").split()
+        parts = self.headers.get("X-Enrollment-Token", "").split()
         if len(parts) != 2 or parts[0].lower() != "bearer":
             self.send_response(401)
             self.send_header("WWW-Authenticate", "Bearer")
@@ -103,23 +104,9 @@ class IssuanceHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     intermediate_ca_name = "intermediateCA3"
-    with HTTPServer(("127.0.0.1", 8000), IssuanceHandler) as httpd:
+    with HTTPServer(("0.0.0.0", 8000), IssuanceHandler) as httpd:
         httpd.intermediate_ca_name = intermediate_ca_name
         print("Listening on http://0.0.0.0:8000")
         httpd.serve_forever()
 
 
-'''
-read -rsp "Enrollment token: " ENROLLMENT_TOKEN
-echo
-
-curl --silent --show-error --fail-with-body \
-  -H "Authorization: Bearer ${ENROLLMENT_TOKEN}" \
-  -H "Content-Type: application/pkcs10" \
-  --data-binary @server1.csr \
-  -o server1.crt \
-  -w "HTTP %{http_code}\n" \
-  http://127.0.0.1:8000/certificates
-
-unset ENROLLMENT_TOKEN
-'''
