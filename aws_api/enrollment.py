@@ -148,6 +148,7 @@ def authorize_enrollment(
 def get_token(server_id):
     with closing(sqlite3.connect("./aws_api/enrollment.db")) as db:
         token = create_enrollment_token(db, server_id)
+        token = create_enrollment_token(db, server_id)
         return token
     
 def main():
@@ -155,7 +156,7 @@ def main():
     with closing(sqlite3.connect("./aws_api/enrollment.db")) as db:
         init_enrollment_db(db)
     
-    token = get_token(server_id="server3")
+    token = get_token("server3")
     print(token) 
     # csr_pem = Path("intermediate_ca/intermediateCA1/csr/server1.csr").read_bytes()
     
