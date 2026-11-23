@@ -109,30 +109,12 @@ if __name__ == "__main__":
         print("Listening on http://0.0.0.0:8000")
         httpd.serve_forever()
 
-
-'''
-rAlXMIKa2k6UZ_9_rS_X-orswTyOh_snSsteBHQmC98
-read -rsp "Enrollment token: " ENROLLMENT_TOKEN
-printf '\n'
-
-awscurl --service execute-api --region us-east-2 \
-  -X POST \
-  -H 'Content-Type: application/pkcs10' \
-  -H "X-Enrollment-Token: Bearer ${ENROLLMENT_TOKEN}" \
-  -d @server3.csr \
-  --data-binary \
-  -o server3-response.txt \
-  'https://243bjs8e34.execute-api.us-east-2.amazonaws.com/test/certificates'
-
-unset ENROLLMENT_TOKEN
-'''
-#vtWyVosSSM_uwk5DZPBGwRfaIf6emCit4of2jpXqkxI
 '''
 read -rsp "Enrollment token: " ENROLLMENT_TOKEN
 echo
 
-awscurl --service execute-api --region us-east-2 -X POST \
-  -H "Authorization: Bearer ${ENROLLMENT_TOKEN}" \
+awscurl -i --service execute-api --region us-east-2 -X POST \
+  -H "X-Enrollment-Token: ${ENROLLMENT_TOKEN}" \
   -H "Content-Type: application/pkcs10" \
   -d @server3.csr --data-binary \
   "https://243bjs8e34.execute-api.us-east-2.amazonaws.com/test/certificates"
