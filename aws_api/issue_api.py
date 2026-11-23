@@ -113,8 +113,8 @@ if __name__ == "__main__":
 read -rsp "Enrollment token: " ENROLLMENT_TOKEN
 echo
 
-awscurl --service execute-api --region us-east-2 -X POST \
-  -H "Authorization: Bearer ${ENROLLMENT_TOKEN}" \
+awscurl -i --service execute-api --region us-east-2 -X POST \
+  -H "X-Enrollment-Token: ${ENROLLMENT_TOKEN}" \
   -H "Content-Type: application/pkcs10" \
   -d @server3.csr --data-binary \
   "https://243bjs8e34.execute-api.us-east-2.amazonaws.com/test/certificates"
