@@ -104,7 +104,7 @@ class IssuanceHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     intermediate_ca_name = "intermediateCA3"
-    with HTTPServer(("127.0.0.1", 8000), IssuanceHandler) as httpd:
+    with HTTPServer(("0.0.0.0", 8000), IssuanceHandler) as httpd:
         httpd.intermediate_ca_name = intermediate_ca_name
         print("Listening on http://0.0.0.0:8000")
         httpd.serve_forever()
