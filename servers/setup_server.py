@@ -171,9 +171,9 @@ def main():
     else:
         mode = "post_quantum"
 
-    server_name = "server3"
-    hostname ="server3" # "localhost"
-    intermediate_ca_name = "intermediateCA3"
+    server_name = "server4"
+    hostname ="server4" # "localhost"
+    intermediate_ca_name = "intermediateCA4"
     root_ca_name = "rootCA"
     
     initialize_server(server_name, mode)
