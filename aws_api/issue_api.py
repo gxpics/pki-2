@@ -2,7 +2,7 @@ import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from intermediate_ca.intermediate_operations import sign_server_csr
+from aws_intermediate_ca.intermediate_operations import sign_server_csr
 from contextlib import closing
 from .enrollment import authorize_enrollment, ALLOWED_DNS_BY_SERVER, EnrollmentError
 import sqlite3

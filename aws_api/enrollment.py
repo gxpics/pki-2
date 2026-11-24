@@ -153,8 +153,8 @@ def get_token(server_id):
     
 def main():
 
-    with closing(sqlite3.connect("./aws_api/enrollment.db")) as db:
-        init_enrollment_db(db)
+    # with closing(sqlite3.connect("./aws_api/enrollment.db")) as db:
+    #     init_enrollment_db(db)
     
     token = get_token("server4")
     print(token) 

@@ -189,12 +189,6 @@ def main():
     # create_server_chain(server_name, intermediate_ca_name)
     # verify_server(server_name, hostname, intermediate_ca_name, root_ca_name)
     
-    # 
-    # install_nginx_certificate(server_name)
-    # generate_nginx_config(server_name)
-    # enable_nginx_site(server_name)
-    # test_nginx()
-    # reload_nginx()
 
 
 if __name__ == "__main__":
