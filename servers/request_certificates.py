@@ -10,7 +10,6 @@ API_URL = (
 )
 
 def main():
-    BASE_DIR = Path.home() / "pki-2" / "servers"
     server_name = "server3"
     
     csr_path = BASE_DIR / f"{server_name}" / "csr" / f"{server_name}.csr"
@@ -28,7 +27,8 @@ def main():
         "-X", "POST",
         "-H", f"X-Enrollment-Token: Bearer {token}",
         "-H", "Content-Type: application/pkcs10",
-        "--data-binary", f"@{csr_path}",
+        "-d", f"@{csr_path}",
+        "--data-binary",
         API_URL,
     ]
 
