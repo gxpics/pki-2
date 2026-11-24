@@ -9,8 +9,8 @@ import shutil
 import ipaddress
 import re
 from cryptography import x509
-from policy import PKI_POLICY, SUPPORTED_ALGORITHMS
-from common import BASE_DIR, run_command
+from .policy import PKI_POLICY, SUPPORTED_ALGORITHMS
+from .common import BASE_DIR, run_command
 
 def export_csr(ca_dir, ca_name, export_dir):
     """
@@ -210,7 +210,7 @@ def main():
     # ca_dir = BASE_DIR / intermediate_ca_name
     # csr_path = ca_dir / "csr" / f"{server_name}.csr"
     # output_path = ca_dir / "issued" / f"{server_name}.crt"
-    approved_san = f"DNS:{server_name}"# "IP:3.128.35.251",  # currently manual approval is used, 
+    approved_san = f"DNS:{server_name}.com"# "IP:3.128.35.251",  # currently manual approval is used, 
         # Later, approved_sans should be managed by RA or database that stores each server's identity, 
         # its approved SANs, and other relevant informationf
     sign_server_csr(approved_san, server_name, intermediate_ca_name)
