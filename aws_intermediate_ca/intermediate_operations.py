@@ -187,12 +187,6 @@ validity_days=365, csr_path=None, cert_path=None):
 
     print(f"Certificate issued: {output_path}")
 
-def revoke_certificate():
-    pass
-
-def generate_crl():
-    pass
-
 def export_csr_for_intermediate_ca_on_local_VM():
     ca_name = "intermediateCA1"
     ca_dir = BASE_DIR / ca_name

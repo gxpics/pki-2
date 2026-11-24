@@ -108,29 +108,3 @@ if __name__ == "__main__":
         httpd.intermediate_ca_name = intermediate_ca_name
         print("Listening on http://0.0.0.0:8000")
         httpd.serve_forever()
-
-'''
-read -rsp "Enrollment token: " ENROLLMENT_TOKEN
-echo
-
-awscurl -i --service execute-api --region us-east-2 -X POST \
-  -H "X-Enrollment-Token: ${ENROLLMENT_TOKEN}" \
-  -H "Content-Type: application/pkcs10" \
-  -d @server3.csr --data-binary \
-  "https://243bjs8e34.execute-api.us-east-2.amazonaws.com/test/certificates"
-
-unset ENROLLMENT_TOKEN
-'''
-'''
-read -rsp "Enrollment token: " ENROLLMENT_TOKEN
-echo
-
-awscurl --service execute-api --region us-east-2 -X POST \
-  -H "X-Enrollment-Token: Bearer ${ENROLLMENT_TOKEN}" \
-  -H "Content-Type: application/pkcs10" \
-  --data-binary @server3.csr \
-  "https://243bjs8e34.execute-api.us-east-2.amazonaws.com/test/certificates" \
-  > server3.crt
-
-unset ENROLLMENT_TOKEN
-'''
