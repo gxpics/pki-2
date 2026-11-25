@@ -10,7 +10,7 @@ API_URL = (
 )
 
 def main():
-    server_name = "server3"
+    server_name = "server4"
     
     csr_path = BASE_DIR / f"{server_name}" / "csr" / f"{server_name}.csr"
     cert_path = BASE_DIR / f"{server_name}" / "certs" / f"{server_name}.crt"
