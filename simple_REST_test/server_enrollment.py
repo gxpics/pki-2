@@ -18,11 +18,18 @@ validity_days=365, csr_path=csr_path, cert_path=cert_path)
 
 
 class IssuanceHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/health":
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+            return
+
+        self.send_error(404)
     def do_POST(self):
         if self.path != "/certificates":
             self.send_error(404, "Not found")
             return
-
         try:
             content_length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
@@ -37,17 +44,7 @@ class IssuanceHandler(BaseHTTPRequestHandler):
 
         try:
             with TemporaryDirectory() as temp_dir:
-                server_name = self.server.server_name
-                intermediate_ca_name = self.server.intermediate_ca_name
-                
-                temp_path = Path(temp_dir)
-                csr_path = temp_path / "request.csr"
-                certificate_path = temp_path / "certificate.pem"
-
-                csr_path.write_bytes(csr)
-                issue_certificate(server_name, intermediate_ca_name, csr_path, certificate_path)
-
-                certificate = certificate_path.read_bytes()
+                certificate = self.issue_certificate(temp_dir, csr)
 
             self.send_response(201, "Created")
             self.send_header("Content-Type", "application/pem-certificate-chain")
@@ -63,12 +60,25 @@ class IssuanceHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(message)
 
+    def issue_certificate(self, temp_dir, csr):
+        temp_path = Path(temp_dir)
+        csr_path = temp_path / "request.csr"
+        cert_path = temp_path / "certificate.pem"
+        csr_path.write_bytes(csr)
+        
+        server_name = self.server.server_name
+        approved_san = f"DNS:{server_name}.com"
+        intermediate_ca_name = self.server.intermediate_ca_name
+        sign_server_csr(approved_san, server_name, intermediate_ca_name, 
+        validity_days=365, csr_path=csr_path, cert_path=cert_path)
+        certificate = cert_path.read_bytes()
+        return certificate
 
 if __name__ == "__main__":
     address = ("0.0.0.0", 8000)
     print(f"Listening on http://{address[0]}:{address[1]}")
     httpd = HTTPServer(("0.0.0.0", 8000), IssuanceHandler)
-    httpd.server_name = "server5"
+    httpd.server_name = "server6"
     httpd.intermediate_ca_name = "intermediateCA4"
     httpd.serve_forever()
    
