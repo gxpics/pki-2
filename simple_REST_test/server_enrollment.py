@@ -6,17 +6,6 @@ from aws_intermediate_ca.intermediate_operations import sign_server_csr
 
 MAX_CSR_BYTES = 16 * 1024
 
-
-def issue_certificate(server_name,intermediate_ca_name, csr_path, cert_path):
-    """
-    Ask the existing Intermediate CA code to sign this CSR.
-    """
-    approved_san = f"DNS:{server_name}.com"
-    sign_server_csr(approved_san, server_name, intermediate_ca_name, 
-validity_days=365, csr_path=csr_path, cert_path=cert_path)
-    
-
-
 class IssuanceHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
@@ -43,8 +32,7 @@ class IssuanceHandler(BaseHTTPRequestHandler):
         csr = self.rfile.read(content_length)
 
         try:
-            with TemporaryDirectory() as temp_dir:
-                certificate = self.issue_certificate(temp_dir, csr)
+            certificate = self.issue_certificate(csr)
 
             self.send_response(201, "Created")
             self.send_header("Content-Type", "application/pem-certificate-chain")
@@ -60,19 +48,20 @@ class IssuanceHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(message)
 
-    def issue_certificate(self, temp_dir, csr):
-        temp_path = Path(temp_dir)
-        csr_path = temp_path / "request.csr"
-        cert_path = temp_path / "certificate.pem"
-        csr_path.write_bytes(csr)
-        
-        server_name = self.server.server_name
-        approved_san = f"DNS:{server_name}.com"
-        intermediate_ca_name = self.server.intermediate_ca_name
-        sign_server_csr(approved_san, server_name, intermediate_ca_name, 
-        validity_days=365, csr_path=csr_path, cert_path=cert_path)
-        certificate = cert_path.read_bytes()
-        return certificate
+    def issue_certificate(self, csr):
+        with TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            csr_path = temp_path / "request.csr"
+            cert_path = temp_path / "certificate.pem"
+            csr_path.write_bytes(csr)
+            
+            server_name = self.server.server_name
+            approved_san = f"DNS:{server_name}.com"
+            intermediate_ca_name = self.server.intermediate_ca_name
+            sign_server_csr(approved_san, server_name, intermediate_ca_name, 
+            validity_days=365, csr_path=csr_path, cert_path=cert_path)
+            certificate = cert_path.read_bytes()
+            return certificate
 
 if __name__ == "__main__":
     address = ("0.0.0.0", 8000)
