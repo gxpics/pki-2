@@ -13,8 +13,8 @@ import sys
 import urllib.error
 import urllib.request
 
-SERVER_NAME = "server6"
-DNS_NAME = "server6.com"
+SERVER_NAME = "server5"
+DNS_NAME = "server5.com"
 
 SERVER_DIR = Path.home() / "pki-2" / "simple_REST_test" / SERVER_NAME
 KEY_PATH = SERVER_DIR / f"{SERVER_NAME}.key"

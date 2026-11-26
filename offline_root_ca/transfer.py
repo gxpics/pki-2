@@ -71,7 +71,7 @@ def upload_certificate(
 1
 def main():
     intermediate_ca_name = "intermediateCA4"
-    remote_host = "18.189.229.149" #"3.128.35.251"
+    remote_host = "18.189.229.149" #ec2-2: "3.128.35.251"
     remote_csr_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/csr/{intermediate_ca_name}.csr"
     remote_user = "ec2-user"
     ssh_key_path="~/.ssh/my-ec2-key.pem"
