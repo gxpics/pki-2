@@ -105,3 +105,20 @@ server {{
 
 if __name__ == "__main__":
     main()
+
+'''
+Run Nginx Server:
+sudo nginx -t
+sudo systemctl start nginx
+sudo systemctl status nginx --no-pager
+'''
+'''
+NGinx client:
+openssl s_client \
+  -connect 127.0.0.1:443 \
+  -servername server5.com \
+  -verify_hostname server5.com \
+  -CAfile rootCA.crt \
+  -verify_return_error \
+  -showcerts </dev/null
+'''
