@@ -60,18 +60,29 @@ def request_certificate():
 
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
-            certificate = response.read()
+            full_chain = response.read()
             print(f"HTTP status: {response.status}")
+            # print(f"Content-Type: {response.headers.get('Content-Type')}")
+            # print(f"Response body length: {len(full_chain)}")
+            # print(f"Response starts with: {full_chain[:200]!r}")
     except urllib.error.HTTPError as error:
         body = error.read().decode(errors="replace")
         sys.exit(f"Server returned HTTP {error.code}:\n{body}")
     except urllib.error.URLError as error:
         sys.exit(f"Could not connect to the server: {error}")
 
-    if not certificate.lstrip().startswith(b"-----BEGIN CERTIFICATE-----"):
-        sys.exit("The response did not contain a PEM certificate.")
+    full_chain = full_chain.lstrip()
 
-    CERT_PATH.write_bytes(certificate)
+    begin_marker = b"-----BEGIN CERTIFICATE-----"
+    end_marker = b"-----END CERTIFICATE-----"
+
+    if not full_chain.startswith(begin_marker):
+        sys.exit("The response did not begin with a PEM certificate.")
+
+    if full_chain.count(begin_marker) < 2 or full_chain.count(end_marker) < 2:
+        sys.exit("The response did not contain both the server and intermediate certificates.")
+
+    CERT_PATH.write_bytes(full_chain)
     print(f"Certificate saved: {CERT_PATH}")
 
 
