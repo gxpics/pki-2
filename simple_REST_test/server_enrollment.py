@@ -4,6 +4,7 @@ from tempfile import TemporaryDirectory
 
 from aws_intermediate_ca.intermediate_operations import sign_server_csr
 
+BASE_INT_DIR = Path.home() / "pki-2" / "aws_intermediate_ca"
 MAX_CSR_BYTES = 16 * 1024
 
 class IssuanceHandler(BaseHTTPRequestHandler):
@@ -31,14 +32,14 @@ class IssuanceHandler(BaseHTTPRequestHandler):
 
         csr = self.rfile.read(content_length)
 
-        try:
-            certificate = self.issue_certificate(csr)
+        try:       
+            full_chain = self.get_full_chain(csr)
 
             self.send_response(201, "Created")
             self.send_header("Content-Type", "application/pem-certificate-chain")
-            self.send_header("Content-Length", str(len(certificate)))
+            self.send_header("Content-Length", str(len(full_chain)))
             self.end_headers()
-            self.wfile.write(certificate)
+            self.wfile.write(full_chain)
 
         except Exception as error:
             message = f"Certificate issuance failed: {error}\n".encode()
@@ -48,7 +49,7 @@ class IssuanceHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(message)
 
-    def issue_certificate(self, csr):
+    def get_full_chain(self, csr):
         with TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             csr_path = temp_path / "request.csr"
@@ -60,8 +61,12 @@ class IssuanceHandler(BaseHTTPRequestHandler):
             intermediate_ca_name = self.server.intermediate_ca_name
             sign_server_csr(approved_san, server_name, intermediate_ca_name, 
             validity_days=365, csr_path=csr_path, cert_path=cert_path)
-            certificate = cert_path.read_bytes()
-            return certificate
+            server_cert = cert_path.read_bytes().strip()
+            intermediate_cert_path = (BASE_INT_DIR / intermediate_ca_name / "certs"
+            / f"{intermediate_ca_name}.crt")
+            intermediate_cert = intermediate_cert_path.read_bytes().strip()
+            full_chain = server_cert + b"\n" + intermediate_cert + b"\n"
+            return full_chain
 
 if __name__ == "__main__":
     address = ("0.0.0.0", 8000)
