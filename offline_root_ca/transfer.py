@@ -82,13 +82,24 @@ def main():
     #remote_cert_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/certs/rootCA.crt"  
     remote_cert_path =f"~/pki-2/aws_intermediate_ca/{intermediate_ca_name}/certs/{intermediate_ca_name}.crt"
       
-    upload_certificate(intermediate_ca_name=intermediate_ca_name,
-                       remote_host=remote_host, 
-                       remote_cert_path=remote_cert_path,
-                       remote_user=remote_user,
-                       ssh_key_path=ssh_key_path,
-                       root_cert=False
-                       )
+    # upload_certificate(intermediate_ca_name=intermediate_ca_name,
+    #                    remote_host=remote_host, 
+    #                    remote_cert_path=remote_cert_path,
+    #                    remote_user=remote_user,
+    #                    ssh_key_path=ssh_key_path,
+    #                    root_cert=False
+    #                    )
+
+    # Transfer root.crt to nginx client on EC2
+    remote_host = "3.128.35.251"
+    remote_cert_path =f"~/pki-2/simple_REST_test/server6/rootCA.crt"
+    upload_certificate(intermediate_ca_name="",
+                           remote_host=remote_host, 
+                           remote_cert_path=remote_cert_path,
+                           remote_user=remote_user,
+                           ssh_key_path=ssh_key_path,
+                           root_cert=True
+                           )
 
 if __name__ == "__main__":
     main()
