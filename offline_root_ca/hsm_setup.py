@@ -16,7 +16,7 @@ softhsm2-util --show-slots
 pkcs11-tool --module /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so --list-token-slots
 """
 import subprocess
-from common import run_command, BASE_DIR
+from .common import run_command, BASE_DIR
 import pkcs11
 from pkcs11 import Attribute, KeyType, ObjectClass
 from pkcs11.util.ec import encode_named_curve_parameters, encode_ec_public_key

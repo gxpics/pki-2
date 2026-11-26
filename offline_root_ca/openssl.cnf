@@ -36,7 +36,7 @@ private_key       = pkcs11:token=RootCA;object=rootCA;type=private
 certificate       = $dir/certs/rootCA.crt
 
 crlnumber         = $dir/crlnumber
-crl               = $dir/crl/root.crl.pem
+crl               = $dir/crl/root-ca.crl
 
 default_md = sha256
 default_days      = 3650
