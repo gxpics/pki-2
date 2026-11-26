@@ -72,7 +72,7 @@ if __name__ == "__main__":
     address = ("0.0.0.0", 8000)
     print(f"Listening on http://{address[0]}:{address[1]}")
     httpd = HTTPServer(("0.0.0.0", 8000), IssuanceHandler)
-    httpd.server_name = "server6"
+    httpd.server_name = "server5"
     httpd.intermediate_ca_name = "intermediateCA4"
     httpd.serve_forever()
    
